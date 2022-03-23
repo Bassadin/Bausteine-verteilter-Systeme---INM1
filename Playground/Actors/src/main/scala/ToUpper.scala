@@ -1,15 +1,19 @@
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 
+trait ToUpperProtocol
+object End extends ToUpperProtocol
+case class Text(content: String) extends ToUpperProtocol
+
 object ToUpper {
-    def apply(): Behavior[String] = {
+    def apply(): Behavior[ToUpperProtocol] = {
         Behaviors.receive((context, message) => {
             message match {
-                case "" =>
-                    println("Terminating actor...")
+                case End =>
+                    context.log.info("Terminating actor...")
                     Behaviors.stopped
-                case text =>
-                    println(message.toUpperCase)
+                case Text(content) =>
+                    context.log.info(content.toUpperCase())
                     Behaviors.same
             }
         })

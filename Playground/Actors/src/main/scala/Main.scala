@@ -5,8 +5,8 @@ object Main {
         println("starting...")
         val actor = ActorSystem(ToUpper(), "hfu");
 
-        actor ! "hello akka";
-        actor ! "";
+        actor ! Text("hello akka");
+        actor ! End;
 
         println("terminating...")
     }
