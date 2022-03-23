@@ -28,6 +28,13 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 // https://mvnrepository.com/artifact/com.typesafe.akka/akka-actor-typed
 libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.6.19"
 
+// https://mvnrepository.com/artifact/org.slf4j/slf4j-api
+libraryDependencies += "org.slf4j" % "slf4j-api" % "2.0.0-alpha7"
+
+// https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.0-alpha7"
+
+
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the scala-parser-combinators dependency to the set of dependencies
 // that sbt will go and fetch when it starts up.
