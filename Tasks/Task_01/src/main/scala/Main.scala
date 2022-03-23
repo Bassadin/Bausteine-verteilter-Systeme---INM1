@@ -1,9 +1,12 @@
-import akka.actor.{ActorSystem, Props}
+import akka.actor.typed.ActorSystem
+
 object Main {
     def main(args: Array[String]): Unit = {
-        val actor =
-            ActorSystem("HFU").actorOf(Props[SimpleActor], name = "anActor");
+        println("starting...")
+        val actor = ActorSystem(ToUpper(), "hfu");
 
-        actor ! "hello";
+        actor ! "hello akka";
+
+        println("terminating...")
     }
 }
