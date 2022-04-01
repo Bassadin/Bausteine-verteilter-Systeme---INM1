@@ -9,9 +9,6 @@ Unanswered questions:
 */
 
 object Main extends App {
-    // val fileParser: ParseFileActor = new ParseFileActor();
-    // fileParser.parseFileFrom("E:/Downloads/Aufgabenblatt+01/test_ticks.csv");
-
     println("starting...");
     val parseFileActor = ActorSystem(ParseFileActor(), "fileParser");
     val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "databaseConnector");
