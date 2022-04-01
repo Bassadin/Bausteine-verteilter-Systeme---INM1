@@ -3,6 +3,12 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorSystem
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
+
+trait ConvertDataActorProtocol
+
+object EndConvertDataActor extends ConvertDataActorProtocol;
+case class DataToConvert(newData: String) extends ConvertDataActorProtocol;
+
 object ConvertDataActor {
     val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "databaseConnector");
 
@@ -41,20 +47,21 @@ object ConvertDataActor {
         return new Tick(newTickID, newTickDateTime, newTickPrice);
     }
 
-    def apply(): Behavior[String] = {
+    def apply(): Behavior[ConvertDataActorProtocol] = {
         Behaviors.receive((context, message) => {
             message match {
-                case "" =>
+                case EndConvertDataActor =>
                     context.log.error("Not a valid data string...")
+                    dbConnectorActor ! EndDbActor;
                     Behaviors.same
-                case _ =>
-                    val newTick: Tick = parseStringToTick(message);
+                case DataToConvert(newData) =>
+                    val newTick: Tick = parseStringToTick(newData);
 
                     if (newTick != null) {
                         context.log.info(
                             "Valid data string: '" + message + "'. Now parsing into data object..."
                         )
-                        dbConnectorActor ! newTick
+                        dbConnectorActor ! TickData(newTick)
                     };
                     Behaviors.same
             }
