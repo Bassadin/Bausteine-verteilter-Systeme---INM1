@@ -4,7 +4,9 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorSystem
 
 trait ParseFileActorProtocol
+
 object StopParseFileActor extends ParseFileActorProtocol;
+
 case class ParseFileData(newData: String) extends ParseFileActorProtocol;
 
 object ParseFileActor {
@@ -29,9 +31,7 @@ object ParseFileActor {
                     context.log.info("Terminating actor...")
                     Behaviors.stopped;
                 case ParseFileData(newData) =>
-                    context.log.info(
-                      "Valid file path: " + message + ". Now parsing..."
-                    )
+                    context.log.info("Valid file path: " + message + ". Now parsing...")
                     parseFileFrom(newData);
                     Behaviors.same;
             }

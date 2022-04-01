@@ -7,16 +7,13 @@ import java.time.LocalDateTime
 trait ConvertDataActorProtocol
 
 object EndConvertDataActor extends ConvertDataActorProtocol;
+
 case class DataToConvert(newData: String) extends ConvertDataActorProtocol;
 
 object ConvertDataActor {
     val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "databaseConnector");
 
-    // TODO Task 3 - converts lines of csv file into actual data
-
     def parseStringToTick(inputDataString: String): Tick = {
-        // TODO parse string into Tick object
-
         // Use -1 here so that the zero-length strings in the end also get thrown into the array
         val splitData: Array[String] = inputDataString.split(",", -1);
 
@@ -58,9 +55,7 @@ object ConvertDataActor {
                     val newTick: Tick = parseStringToTick(newData);
 
                     if (newTick != null) {
-                        context.log.info(
-                            "Valid data string: '" + message + "'. Now parsing into data object..."
-                        )
+                        context.log.info("Valid data string: '" + message + "'. Now parsing into data object...")
                         dbConnectorActor ! TickData(newTick)
                     };
                     Behaviors.same

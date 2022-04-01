@@ -25,7 +25,7 @@ object DatabaseConnectorActor {
             case e: java.sql.SQLTimeoutException => context.log.error("Database timeout - " + e.toString)
             case e: java.sql.SQLException => context.log.error("SQL Exception - " + e.toString)
         }
-        
+
         println(s"Added Tick $newTick to db successfully.");
     }
 
@@ -33,19 +33,14 @@ object DatabaseConnectorActor {
         Behaviors.receive((context, message) => {
             message match {
                 case TickData(newTickToStore) =>
-                    context.log.info(
-                        "Valid tick data..."
-                    )
+                    context.log.info("Valid tick data...")
                     storeInDB(newTickToStore, context);
                     Behaviors.same;
                 case EndDbActor =>
-                    context.log.info(
-                        "Null received, closing db connection"
-                    )
+                    context.log.info("Null received, closing db connection")
                     connection.close();
                     Behaviors.stopped;
             }
         })
-
     }
 }
