@@ -3,7 +3,9 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorSystem
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
-class ConvertDataActor(dbActorSystem: ActorSystem[Tick]) {
+object ConvertDataActor {
+    val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "databaseConnector");
+
     // TODO Task 3 - converts lines of csv file into actual data
 
     def parseStringToTick(inputDataString: String): Tick = {
@@ -50,7 +52,7 @@ class ConvertDataActor(dbActorSystem: ActorSystem[Tick]) {
                     )
                     val newTick: Tick = parseStringToTick(message);
                     if (newTick != null) {
-                        dbActorSystem ! newTick;
+                        dbConnectorActor ! newTick;
                     }
                     Behaviors.same
             }

@@ -1,8 +1,11 @@
 import scala.io.Source
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.ActorSystem
 
 object ParseFileActor {
+    val convertDataActor = ActorSystem(ConvertDataActor(), "fileParser");
+
     def parseFileFrom(path: String): Unit = {
         // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
         for (line <- Source.fromFile(path).getLines) {
