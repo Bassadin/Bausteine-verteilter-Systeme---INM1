@@ -12,7 +12,7 @@ case class TickData(tick: Tick) extends DatabaseConnectorActorProtocol;
 
 object DatabaseConnectorActor {
     val connection: Connection =
-        DriverManager.getConnection("jdbc:h2:C:/Users/basti/Documents/Git-Repos/Bausteine-verteilter-Systeme-INM1/Tasks/Task_01/src/main/resources/test", "sa", "");
+        DriverManager.getConnection("jdbc:h2:./src/main/resources/test", "sa", "");
 
     def connectToDB(): Unit = {
         // TODO connect to the the h2 db
