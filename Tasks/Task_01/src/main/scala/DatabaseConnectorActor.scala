@@ -1,6 +1,6 @@
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-class DatabaseConnectorActor {
+object DatabaseConnectorActor {
     def connectToDB(): Unit = {
         // TODO connect to the the h2 db
 
@@ -8,6 +8,8 @@ class DatabaseConnectorActor {
 
     def storeInDB(newTick: Tick): Boolean = {
         // TODO store the tick in the h2 db
+
+        println("Printing Tick: " + newTick);
 
         return true;
     }
