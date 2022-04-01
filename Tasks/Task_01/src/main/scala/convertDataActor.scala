@@ -1,7 +1,7 @@
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorSystem
-class convertDataActor(dbActorSystem: ActorSystem<ParseFileActor>) {
+class ConvertDataActor(dbActorSystem: ActorSystem[Tick]) {
     // TODO Task 3 - converts lines of csv file into actual data
 
     def parseStringToTick(path: String): Tick = {
