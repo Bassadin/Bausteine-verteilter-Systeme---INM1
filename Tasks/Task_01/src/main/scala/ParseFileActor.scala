@@ -8,8 +8,8 @@ object ParseFileActor {
 
     def parseFileFrom(path: String): Unit = {
         // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
-        for (line <- Source.fromFile(path).getLines) {
-            println(line);
+        for (line <- Source.fromFile(path).getLines.drop(4)) {
+            convertDataActor ! line;
         }
     }
 
