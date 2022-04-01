@@ -37,7 +37,7 @@ libraryDependencies += "org.slf4j" % "slf4j-api" % "2.0.0-alpha7"
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.0-alpha7"
 
 // https://mvnrepository.com/artifact/com.h2database/h2
-libraryDependencies += "com.h2database" % "h2" % "2.1.210" % Test
+libraryDependencies += "com.h2database" % "h2" % "1.4.200"
 
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
