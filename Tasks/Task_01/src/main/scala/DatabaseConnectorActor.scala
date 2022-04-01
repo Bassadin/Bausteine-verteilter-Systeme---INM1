@@ -14,14 +14,7 @@ object DatabaseConnectorActor {
     val connection: Connection =
         DriverManager.getConnection("jdbc:h2:./src/main/resources/test", "sa", "");
 
-    def connectToDB(): Unit = {
-        // TODO connect to the the h2 db
-
-    }
-
     def storeInDB(newTick: Tick, context: ActorContext[DatabaseConnectorActorProtocol]): Unit = {
-        // TODO store the tick in the h2 db
-
         try {
             val sqlStatementString: String = s"INSERT INTO TICKS values('${newTick.symbol}', '${newTick.timestamp}', ${newTick.price})"
 
@@ -32,8 +25,7 @@ object DatabaseConnectorActor {
             case e: java.sql.SQLTimeoutException => context.log.error("Database timeout - " + e.toString)
             case e: java.sql.SQLException => context.log.error("SQL Exception - " + e.toString)
         }
-
-
+        
         println(s"Added Tick $newTick to db successfully.");
     }
 
