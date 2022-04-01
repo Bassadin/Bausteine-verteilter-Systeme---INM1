@@ -11,7 +11,8 @@ object ConvertDataActor {
     def parseStringToTick(inputDataString: String): Tick = {
         // TODO parse string into Tick object
 
-        val splitData: Array[String] = inputDataString.split(",");
+        // Use -1 here so that the zero-length strings in the end also get thrown into the array
+        val splitData: Array[String] = inputDataString.split(",", -1);
 
         // ID
         val newTickID: String = splitData(0);
@@ -19,20 +20,20 @@ object ConvertDataActor {
         // Date and Time
         // https://www.java67.com/2016/04/how-to-convert-string-to-localdatetime-in-java8-example.html
         val dateString: String = splitData(26);
-        if (dateString == "") {
+        if (dateString.isEmpty) {
             return null;
         }
         val timeString: String = splitData(23);
-        if (timeString == "" || timeString == "00:00:00.000") {
+        if (timeString.isEmpty || timeString == "00:00:00.000") {
             return null;
         }
         val formatter: DateTimeFormatter =
-            DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss.s");
+            DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss.SSS");
         val newTickDateTime: LocalDateTime =
             LocalDateTime.parse(dateString + " " + timeString, formatter);
 
         // Price
-        val newTickPrice: Long = splitData(21).toLong;
+        val newTickPrice: Long = splitData(21).toDouble.toLong;
         if (newTickPrice == 0) {
             return null;
         }
@@ -47,13 +48,14 @@ object ConvertDataActor {
                     context.log.error("Not a valid data string...")
                     Behaviors.same
                 case _ =>
-                    context.log.info(
-                      "Valid data string: '" + message + "'. Now parsing into data object..."
-                    )
                     val newTick: Tick = parseStringToTick(message);
+
                     if (newTick != null) {
-                        dbConnectorActor ! newTick;
-                    }
+                        context.log.info(
+                            "Valid data string: '" + message + "'. Now parsing into data object..."
+                        )
+                        dbConnectorActor ! newTick
+                    };
                     Behaviors.same
             }
         })
