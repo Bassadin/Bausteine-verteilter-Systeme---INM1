@@ -16,13 +16,13 @@ object ParseFileActor {
                 case "" =>
                     context.log.error("Not a valid file path...")
                     context.log.info("Terminating actor...")
-                    Behaviors.stopped
+                    Behaviors.stopped;
                 case _ =>
                     context.log.info(
                       "Valid file path: " + message + ". Now parsing..."
                     )
                     parseFileFrom(message);
-                    Behaviors.same
+                    Behaviors.same;
             }
         })
     }
