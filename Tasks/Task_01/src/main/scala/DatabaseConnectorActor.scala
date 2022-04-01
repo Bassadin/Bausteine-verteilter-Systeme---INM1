@@ -11,8 +11,7 @@ object EndDbActor extends DatabaseConnectorActorProtocol;
 case class TickData(tick: Tick) extends DatabaseConnectorActorProtocol;
 
 object DatabaseConnectorActor {
-    val connection: Connection =
-        DriverManager.getConnection("jdbc:h2:./src/main/resources/test", "sa", "");
+    val connection: Connection = DriverManager.getConnection("jdbc:h2:./src/main/resources/test", "sa", "");
 
     def storeInDB(newTick: Tick, context: ActorContext[DatabaseConnectorActorProtocol]): Unit = {
         try {

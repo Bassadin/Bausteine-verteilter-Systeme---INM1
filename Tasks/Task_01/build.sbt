@@ -13,8 +13,8 @@ scalaVersion := "2.13.8"
 
 // It's possible to define many kinds of settings, such as:
 
-name := "hello-world"
-organization := "ch.epfl.scala"
+name := "scala-akka-demo"
+organization := "de.bassadin"
 version := "1.0"
 
 // Note, it's not required for you to define these three settings. These are
