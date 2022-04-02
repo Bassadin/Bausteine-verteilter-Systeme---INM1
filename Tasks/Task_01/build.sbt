@@ -13,5 +13,3 @@ libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.0-alpha6"
 
 // https://mvnrepository.com/artifact/com.h2database/h2
 libraryDependencies += "com.h2database" % "h2" % "1.4.200"
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.0"
