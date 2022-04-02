@@ -1,4 +1,3 @@
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.ActorSystem
@@ -13,7 +12,10 @@ case class DataToConvert(newData: String) extends ConvertDataActorProtocol;
 object ConvertDataActor {
     val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "hfu");
 
-    def parseStringToTick(inputDataString: String, context: ActorContext[ConvertDataActorProtocol]): Tick = {
+    def parseStringToTick(
+        inputDataString: String,
+        context: ActorContext[ConvertDataActorProtocol]
+    ): Tick = {
         // Use -1 here so that the zero-length strings in the end also get thrown into the array
         val splitData: Array[String] = inputDataString.split(",", -1);
 
@@ -48,7 +50,7 @@ object ConvertDataActor {
     }
 
     def apply(): Behavior[ConvertDataActorProtocol] = {
-        Behaviors.receive((context, message) => {
+        Behaviors.receive { (context, message) =>
             message match {
                 case DataToConvert(newData) =>
                     val newTick: Tick = parseStringToTick(newData, context);
@@ -62,6 +64,6 @@ object ConvertDataActor {
                     dbConnectorActor ! EndDbActor;
                     Behaviors.stopped
             }
-        })
+        }
     }
 }

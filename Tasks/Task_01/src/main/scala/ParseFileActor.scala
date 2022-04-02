@@ -12,7 +12,10 @@ case class FileNameToParse(newData: String) extends ParseFileActorProtocol;
 object ParseFileActor {
     val convertDataActor = ActorSystem(ConvertDataActor(), "hfu");
 
-    def parseFileFrom(path: String, context: ActorContext[ParseFileActorProtocol]): Unit = {
+    def parseFileFrom(
+        path: String,
+        context: ActorContext[ParseFileActorProtocol]
+    ): Unit = {
         // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
         // Drop first 4 lines since they're just headers
         for (line <- Source.fromFile(path).getLines.drop(4)) {
@@ -26,18 +29,20 @@ object ParseFileActor {
     }
 
     def apply(): Behavior[ParseFileActorProtocol] = {
-        Behaviors.receive((context, message) => {
-            message match {
-                case StopParseFileActor =>
-                    context.log.info("Terminating parse file actor...")
-                    Behaviors.stopped;
-                case FileNameToParse(newData) =>
-                    context.log.info(
-                      "Valid file path: " + message + ". Now parsing..."
-                    )
-                    parseFileFrom(newData, context);
-                    Behaviors.same;
+        Behaviors.receive { (context, message) =>
+            {
+                message match {
+                    case StopParseFileActor =>
+                        context.log.info("Terminating parse file actor...")
+                        Behaviors.stopped;
+                    case FileNameToParse(newData) =>
+                        context.log.info(
+                          "Valid file path: " + message + ". Now parsing..."
+                        )
+                        parseFileFrom(newData, context);
+                        Behaviors.same;
+                }
             }
-        })
+        }
     }
 }
