@@ -30,7 +30,9 @@ object ParseFileActor {
                     context.log.info("Terminating parse file actor...")
                     Behaviors.stopped;
                 case ParseFileData(newData) =>
-                    context.log.info("Valid file path: " + message + ". Now parsing...")
+                    context.log.info(
+                      "Valid file path: " + message + ". Now parsing..."
+                    )
                     parseFileFrom(newData);
                     Behaviors.same;
             }
