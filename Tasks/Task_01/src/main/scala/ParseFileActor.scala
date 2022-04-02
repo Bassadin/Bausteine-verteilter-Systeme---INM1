@@ -22,8 +22,6 @@ object ParseFileActor {
             convertDataActor ! DataToConvert(line);
         }
 
-        context.log.info("Reading file finished.");
-
         // Quit the convert data actor afterwards
         convertDataActor ! EndConvertDataActor;
     }
