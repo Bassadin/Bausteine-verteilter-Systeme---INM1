@@ -1,6 +1,8 @@
+
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.ActorSystem
+
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
@@ -9,9 +11,9 @@ object EndConvertDataActor extends ConvertDataActorProtocol;
 case class DataToConvert(newData: String) extends ConvertDataActorProtocol;
 
 object ConvertDataActor {
-    val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "databaseConnector");
+    val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "hfu");
 
-    def parseStringToTick(inputDataString: String): Tick = {
+    def parseStringToTick(inputDataString: String, context: ActorContext[ConvertDataActorProtocol]): Tick = {
         // Use -1 here so that the zero-length strings in the end also get thrown into the array
         val splitData: Array[String] = inputDataString.split(",", -1);
 
@@ -24,6 +26,7 @@ object ConvertDataActor {
         if (dateString.isEmpty) {
             return null;
         }
+
         val timeString: String = splitData(23);
         if (timeString.isEmpty || timeString == "00:00:00.000") {
             return null;
@@ -39,24 +42,25 @@ object ConvertDataActor {
             return null;
         }
 
-        return new Tick(newTickID, newTickDateTime, newTickPrice);
+        val newParsedTick = new Tick(newTickID, newTickDateTime, newTickPrice);
+
+        return newParsedTick;
     }
 
     def apply(): Behavior[ConvertDataActorProtocol] = {
         Behaviors.receive((context, message) => {
             message match {
+                case DataToConvert(newData) =>
+                    val newTick: Tick = parseStringToTick(newData, context);
+
+                    if (newTick != null) {
+                        dbConnectorActor ! TickData(newTick)
+                    };
+                    Behaviors.same
                 case EndConvertDataActor =>
                     context.log.info("Terminating convert data actor...")
                     dbConnectorActor ! EndDbActor;
                     Behaviors.stopped
-                case DataToConvert(newData) =>
-                    val newTick: Tick = parseStringToTick(newData);
-
-                    if (newTick != null) {
-                        context.log.debug("Valid data string: '" + message + "'. Now parsing into data object...")
-                        dbConnectorActor ! TickData(newTick)
-                    };
-                    Behaviors.same
             }
         })
     }

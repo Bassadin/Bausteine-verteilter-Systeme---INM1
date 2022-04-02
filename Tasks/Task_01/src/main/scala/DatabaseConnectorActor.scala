@@ -30,7 +30,6 @@ object DatabaseConnectorActor {
         Behaviors.receive((context, message) => {
             message match {
                 case TickData(newTickToStore) =>
-                    context.log.info("Valid tick data, storing in db...")
                     storeInDB(newTickToStore, context);
                     Behaviors.same;
                 case EndDbActor =>
