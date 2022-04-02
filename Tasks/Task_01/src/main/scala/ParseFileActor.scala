@@ -28,7 +28,7 @@ object ParseFileActor {
             message match {
                 case StopParseFileActor =>
                     context.log.error("Not a valid file path...")
-                    context.log.info("Terminating actor...")
+                    context.log.info("Terminating parse file actor...")
                     Behaviors.stopped;
                 case ParseFileData(newData) =>
                     context.log.info("Valid file path: " + message + ". Now parsing...")

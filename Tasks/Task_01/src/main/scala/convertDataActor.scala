@@ -48,9 +48,9 @@ object ConvertDataActor {
         Behaviors.receive((context, message) => {
             message match {
                 case EndConvertDataActor =>
-                    context.log.error("Not a valid data string...")
+                    context.log.error("Terminating convert data actor...")
                     dbConnectorActor ! EndDbActor;
-                    Behaviors.same
+                    Behaviors.stopped
                 case DataToConvert(newData) =>
                     val newTick: Tick = parseStringToTick(newData);
 
