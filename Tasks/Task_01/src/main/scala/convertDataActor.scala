@@ -5,9 +5,7 @@ import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
 trait ConvertDataActorProtocol
-
 object EndConvertDataActor extends ConvertDataActorProtocol;
-
 case class DataToConvert(newData: String) extends ConvertDataActorProtocol;
 
 object ConvertDataActor {

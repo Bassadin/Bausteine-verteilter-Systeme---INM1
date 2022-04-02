@@ -1,13 +1,11 @@
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-
 import java.sql.DriverManager
 import java.sql.Connection
 
 trait DatabaseConnectorActorProtocol;
 
 object EndDbActor extends DatabaseConnectorActorProtocol;
-
 case class TickData(tick: Tick) extends DatabaseConnectorActorProtocol;
 
 object DatabaseConnectorActor {
@@ -21,8 +19,8 @@ object DatabaseConnectorActor {
             sqlStatement.executeUpdate();
             sqlStatement.close();
         } catch {
-            case e: java.sql.SQLTimeoutException => context.log.error("Database timeout - " + e.toString)
             case e: java.sql.SQLException => context.log.error("SQL Exception - " + e.toString)
+            case e: java.sql.SQLTimeoutException => context.log.error("Database timeout - " + e.toString)
         }
 
         context.log.info(s"Added Tick '$newTick' to DB successfully.");
