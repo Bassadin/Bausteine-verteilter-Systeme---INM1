@@ -9,6 +9,4 @@ object Main extends App {
 
     // End the actor afterwards
     parseFileActor ! StopParseFileActor;
-
-    println("terminating...");
 }

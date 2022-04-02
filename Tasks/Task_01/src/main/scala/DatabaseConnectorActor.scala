@@ -25,18 +25,18 @@ object DatabaseConnectorActor {
             case e: java.sql.SQLException => context.log.error("SQL Exception - " + e.toString)
         }
 
-        println(s"Added Tick $newTick to db successfully.");
+        context.log.info(s"Added Tick '$newTick' to DB successfully.");
     }
 
     def apply(): Behavior[DatabaseConnectorActorProtocol] = {
         Behaviors.receive((context, message) => {
             message match {
                 case TickData(newTickToStore) =>
-                    context.log.info("Valid tick data...")
+                    context.log.debug("Valid tick data, storing in db...")
                     storeInDB(newTickToStore, context);
                     Behaviors.same;
                 case EndDbActor =>
-                    context.log.info("Null received, closing db connection")
+                    context.log.info("End signal received, terminating DB actor and closing DB connection")
                     connection.close();
                     Behaviors.stopped;
             }

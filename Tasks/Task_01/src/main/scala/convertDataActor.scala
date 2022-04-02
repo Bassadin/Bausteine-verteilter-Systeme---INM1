@@ -48,14 +48,14 @@ object ConvertDataActor {
         Behaviors.receive((context, message) => {
             message match {
                 case EndConvertDataActor =>
-                    context.log.error("Terminating convert data actor...")
+                    context.log.info("Terminating convert data actor...")
                     dbConnectorActor ! EndDbActor;
                     Behaviors.stopped
                 case DataToConvert(newData) =>
                     val newTick: Tick = parseStringToTick(newData);
 
                     if (newTick != null) {
-                        context.log.info("Valid data string: '" + message + "'. Now parsing into data object...")
+                        context.log.debug("Valid data string: '" + message + "'. Now parsing into data object...")
                         dbConnectorActor ! TickData(newTick)
                     };
                     Behaviors.same
