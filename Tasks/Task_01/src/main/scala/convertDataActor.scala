@@ -39,6 +39,7 @@ object ConvertDataActor {
             LocalDateTime.parse(dateString + " " + timeString, formatter);
 
         // Price
+        // Double and long conversion to get correct values. Maybe improve later?
         val newTickPrice: Long = splitData(21).toDouble.toLong;
         // Without the following part, the targeted 679 data points are put out. With it, the db is only 612 lines long for some reason.
 //        if (newTickPrice == 0) {
