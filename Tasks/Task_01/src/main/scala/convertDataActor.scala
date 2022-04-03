@@ -40,9 +40,10 @@ object ConvertDataActor {
 
         // Price
         val newTickPrice: Long = splitData(21).toDouble.toLong;
-        if (newTickPrice == 0) {
-            return null;
-        }
+        // Without the following part, the targeted 679 data points are put out. With it, the db is only 612 lines long for some reason.
+//        if (newTickPrice == 0) {
+//            return null;
+//        }
 
         val newParsedTick = new Tick(newTickID, newTickDateTime, newTickPrice);
 
