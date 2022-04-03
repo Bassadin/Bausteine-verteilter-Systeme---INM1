@@ -10,7 +10,7 @@ case class TickData(tick: Tick) extends DatabaseConnectorActorProtocol;
 
 object DatabaseConnectorActor {
     val connection: Connection = DriverManager.getConnection(
-      "jdbc:h2:./src/main/resources/test;DB_CLOSE_ON_EXIT=FALSE",
+      "jdbc:h2:./src/main/resources/test",
       "sa",
       ""
     );
