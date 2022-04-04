@@ -28,6 +28,7 @@ object DatabaseConnectorActor {
             sqlStatement.close();
         } catch {
             // There's data where all of the fields that tick needs are identical - use this catch to get around the duplicate primary key SQL errors
+            // TODO: Don't do it like this, use a REPLACE statement instead
             case e: java.sql.SQLException =>
                 context.log.error("SQL Exception - " + e.toString)
         }
