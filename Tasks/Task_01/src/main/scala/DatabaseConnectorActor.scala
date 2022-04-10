@@ -20,6 +20,7 @@ object DatabaseConnectorActor {
         context: ActorContext[DatabaseConnectorActorProtocol]
     ): Unit = {
         try {
+            // TODO: Replace this with setString calls to avoid preparing a statement over and over again
             val sqlStatementString: String =
                 s"INSERT INTO TICKS values('${newTick.symbol}', '${newTick.timestamp}', ${newTick.price})"
 
