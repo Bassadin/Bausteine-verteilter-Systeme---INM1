@@ -57,6 +57,7 @@ object ConvertDataActor {
                 case DataToConvert(newData) =>
                     val newTick: Tick = parseStringToTick(newData, context);
 
+                    // Use NaN instead of null
                     if (newTick != null) {
                         dbConnectorActor ! TickData(newTick)
                     };
