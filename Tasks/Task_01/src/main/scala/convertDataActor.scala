@@ -12,6 +12,9 @@ case class DataToConvert(newData: String) extends ConvertDataActorProtocol;
 object ConvertDataActor {
     val dbConnectorActor = ActorSystem(DatabaseConnectorActor(), "hfu");
 
+    val formatter: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss.SSS");
+
     def parseStringToTick(
         inputDataString: String,
         context: ActorContext[ConvertDataActorProtocol]
@@ -33,8 +36,7 @@ object ConvertDataActor {
         if (timeString.isEmpty || timeString == "00:00:00.000") {
             return null;
         }
-        val formatter: DateTimeFormatter =
-            DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss.SSS");
+
         val newTickDateTime: LocalDateTime =
             LocalDateTime.parse(dateString + " " + timeString, formatter);
 
