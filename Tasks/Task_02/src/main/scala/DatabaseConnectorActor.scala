@@ -1,4 +1,4 @@
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 
@@ -46,10 +46,19 @@ object DatabaseConnectorActor {
         context.log.info(s"Added Tick '$newTick' to DB successfully.");
     }
 
-    def apply(): Behavior[DatabaseConnectorActorProtocol] = {
-        Behaviors.setup {
-            context => {
-                context.system.receptionist ! Receptionist.subscribe();
+    def apply(id: String): Behavior[DatabaseConnectorActorProtocol] = {
+        Behaviors.setup { context =>
+            {
+                val receptionistSubscriber: ActorRef[Receptionist.Listing] =
+                    context.messageAdapter {
+                        case ParseFileActor.serviceKey.Listing(set) =>
+                            DataToConvert("");
+                    }
+
+                context.system.receptionist ! Receptionist.subscribe(
+                  ConvertDataActor.serviceKey,
+                  receptionistSubscriber
+                );
             }
         }
 
