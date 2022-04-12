@@ -28,20 +28,11 @@ object DatabaseConnectorActor {
         newTick: Tick,
         context: ActorContext[DatabaseConnectorActorProtocol]
     ): Unit = {
-        try {
-            // TODO: Replace this with setString calls to avoid preparing a statement over and over again
-
-            val sqlStatement = preparedSqlStatement;
-            sqlStatement.setString(1, newTick.symbol);
-            sqlStatement.setString(2, newTick.timestamp.toString);
-            sqlStatement.setLong(3, newTick.price);
-            sqlStatement.executeUpdate();
-        } catch {
-            // There's data where all of the fields that tick needs are identical - use this catch to get around the duplicate primary key SQL errors
-            // TODO: Don't do it like this, use a REPLACE statement instead
-            case e: java.sql.SQLException =>
-                context.log.error("SQL Exception - " + e.toString)
-        }
+        val sqlStatement = preparedSqlStatement;
+        sqlStatement.setString(1, newTick.symbol);
+        sqlStatement.setString(2, newTick.timestamp.toString);
+        sqlStatement.setLong(3, newTick.price);
+        sqlStatement.executeUpdate();
 
         context.log.info(s"Added Tick '$newTick' to DB successfully.");
     }
