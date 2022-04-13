@@ -2,15 +2,6 @@ import akka.actor.typed.ActorSystem
 
 object Main extends App {
     println("starting...");
-    /*val parseFileActor = ActorSystem(ParseFileActor(), "hfu");
-
-    // Send the file path to the parsing actor
-    parseFileActor ! FileNameToParse("./test_ticks.csv");
-
-    // End the actor afterwards
-    parseFileActor ! StopParseFileActor;*/
-
-    val system = ActorSystem(ActorReceptionist.guardian, "ActorDiscovery");
-
+    val system = ActorSystem[Nothing](Guardian, "ActorDiscovery");
     println("terminating...");
 }
