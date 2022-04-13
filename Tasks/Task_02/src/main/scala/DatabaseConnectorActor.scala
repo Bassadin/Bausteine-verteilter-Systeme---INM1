@@ -1,3 +1,4 @@
+import ConvertDataActor.{dbConnectorActor, parseStringToTick}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -37,36 +38,29 @@ object DatabaseConnectorActor {
         context.log.info(s"Added Tick '$newTick' to DB successfully.");
     }
 
-    def apply(id: String): Behavior[DatabaseConnectorActorProtocol] = {
+    def apply(
+        parseFileActor: ActorRef[ConvertDataActorProtocol]
+    ): Behavior[DatabaseConnectorActorProtocol] = {
+
         Behaviors.setup { context =>
-            {
-                val receptionistSubscriber: ActorRef[Receptionist.Listing] =
-                    context.messageAdapter {
-                        case ParseFileActor.serviceKey.Listing(set) =>
-                            DataToConvert("");
-                    }
+            context.system.receptionist ! Receptionist.register(
+              DatabaseConnectorActor.serviceKey,
+              context.self
+            )
 
-                context.system.receptionist ! Receptionist.subscribe(
-                  ConvertDataActor.serviceKey,
-                  receptionistSubscriber
-                );
-            }
-        }
+            Behaviors.receiveMessage {
+                case TickData(newTickToStore) =>
+                    storeInDB(newTickToStore, context);
+                    Behaviors.same;
+                case EndDbActor =>
+                    context.log.info(
+                      "End signal received, terminating DB actor and closing DB connection"
+                    )
+                    connection.close();
+                    Behaviors.stopped;
 
-        Behaviors.receive { (context, message) =>
-            {
-                message match {
-                    case TickData(newTickToStore) =>
-                        storeInDB(newTickToStore, context);
-                        Behaviors.same;
-                    case EndDbActor =>
-                        context.log.info(
-                          "End signal received, terminating DB actor and closing DB connection"
-                        )
-                        connection.close();
-                        Behaviors.stopped;
-                }
             }
         }
     }
+
 }

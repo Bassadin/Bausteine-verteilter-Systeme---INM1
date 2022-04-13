@@ -4,12 +4,10 @@ import scala.io.Source
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.ActorSystem
-import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 
 trait ParseFileActorProtocol
-
 object StopParseFileActor extends ParseFileActorProtocol;
-
 case class FileNameToParse(newData: String) extends ParseFileActorProtocol;
 
 object ParseFileActor {
@@ -31,22 +29,25 @@ object ParseFileActor {
         convertDataActor ! EndConvertDataActor;
     }
 
-    // def controller(): Behavior[NotUsed] = ???;
-
     def apply(): Behavior[ParseFileActorProtocol] = {
-        Behaviors.receive { (context, message) =>
-            {
-                message match {
-                    case StopParseFileActor =>
-                        context.log.info("Terminating parse file actor...")
-                        Behaviors.stopped;
-                    case FileNameToParse(newData) =>
-                        context.log.info(
-                          "Valid file path: " + message + ". Now parsing..."
-                        )
-                        parseFileFrom(newData, context);
-                        Behaviors.same;
-                }
+
+        Behaviors.setup { context =>
+            context.system.receptionist ! Receptionist.register(
+              ParseFileActor.serviceKey,
+              context.self
+            )
+
+            Behaviors.receiveMessage {
+                case StopParseFileActor =>
+                    context.log.info("Terminating parse file actor...")
+                    Behaviors.stopped;
+                case FileNameToParse(newData) =>
+                    context.log.info(
+                      "Valid file path: " + newData + ". Now parsing..."
+                    )
+                    parseFileFrom(newData, context);
+                    Behaviors.same;
+
             }
         }
     }

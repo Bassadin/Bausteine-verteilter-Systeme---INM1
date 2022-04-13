@@ -1,7 +1,7 @@
-import akka.actor.typed.Behavior
+import ParseFileActor.{convertDataActor, parseFileFrom}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
@@ -52,9 +52,15 @@ object ConvertDataActor {
         return newParsedTick;
     }
 
-    def apply(): Behavior[ConvertDataActorProtocol] = {
-        Behaviors.receive { (context, message) =>
-            message match {
+    def apply(parseFileActor: ActorRef[ParseFileActorProtocol]): Behavior[ConvertDataActorProtocol] = {
+
+        Behaviors.setup { context =>
+            context.system.receptionist ! Receptionist.register(
+                ConvertDataActor.serviceKey,
+                context.self
+            )
+
+            Behaviors.receiveMessage {
                 case DataToConvert(newData) =>
                     val newTick: Tick = parseStringToTick(newData, context);
 
@@ -67,7 +73,10 @@ object ConvertDataActor {
                     context.log.info("Terminating convert data actor...")
                     dbConnectorActor ! EndDbActor;
                     Behaviors.stopped
+
             }
         }
     }
+
+
 }
