@@ -37,6 +37,16 @@ object ParseFileActor {
               context.self
             )
 
+            val listingResponseAdapter =
+                context.messageAdapter[Receptionist.Listing](
+                  ListingResponse.apply
+                )
+
+            context.system.receptionist ! Receptionist.Find(
+              ConvertDataActor.serviceKey,
+              listingResponseAdapter
+            )
+
             Behaviors.receiveMessage {
                 case StopParseFileActor =>
                     context.log.info("Terminating parse file actor...")
