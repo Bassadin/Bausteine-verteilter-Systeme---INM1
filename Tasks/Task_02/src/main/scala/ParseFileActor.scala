@@ -1,63 +1,64 @@
 import akka.NotUsed
 
 import scala.io.Source
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.ActorSystem
+import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
+import akka.util.Timeout
+
+import java.util.concurrent.TimeUnit
+import scala.util.Success
 
 trait ParseFileActorProtocol
 object StopParseFileActor extends ParseFileActorProtocol;
-case class FileNameToParse(newData: String) extends ParseFileActorProtocol;
+case class LoadDataFromFileAndGetParseActor(newData: String) extends ParseFileActorProtocol;
+case class SendFileDataToConvertActor(convertDataActorRef: ActorRef[ConvertDataActorProtocol], newData: String) extends ParseFileActorProtocol;
 
 object ParseFileActor {
     val serviceKey = ServiceKey[ParseFileActorProtocol]("fileParser");
 
-    val convertDataActor = ActorSystem(ConvertDataActor(), "hfu");
-
-    def parseFileFrom(
-        path: String,
-        context: ActorContext[ParseFileActorProtocol]
-    ): Unit = {
-        // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
-        // Drop first 4 lines since they're just headers
-        for (line <- Source.fromFile(path).getLines.drop(4)) {
-            convertDataActor ! DataToConvert(line);
-        }
-
-        // Quit the convert data actor afterwards
-        convertDataActor ! EndConvertDataActor;
-    }
-
     def apply(): Behavior[ParseFileActorProtocol] = {
 
         Behaviors.setup { context =>
-            context.system.receptionist ! Receptionist.register(
-              ParseFileActor.serviceKey,
-              context.self
-            )
-
-            val listingResponseAdapter =
-                context.messageAdapter[Receptionist.Listing](
-                  ListingResponse.apply
-                )
-
-            context.system.receptionist ! Receptionist.Find(
-              ConvertDataActor.serviceKey,
-              listingResponseAdapter
-            )
-
+            implicit val timeout: Timeout =
+                Timeout.apply(100, TimeUnit.MILLISECONDS)
             Behaviors.receiveMessage {
                 case StopParseFileActor =>
                     context.log.info("Terminating parse file actor...")
                     Behaviors.stopped;
-                case FileNameToParse(newData) =>
+                case LoadDataFromFileAndGetParseActor(newData) =>
                     context.log.info(
                       "Valid file path: " + newData + ". Now parsing..."
                     )
-                    parseFileFrom(newData, context);
-                    Behaviors.same;
 
+                    context.ask(
+                      context.system.receptionist,
+                      Find(ConvertDataActor.serviceKey)
+                    ) {
+                        case Success(listing: Listing) => {
+                            val instances =
+                                listing.serviceInstances(
+                                  ConvertDataActor.serviceKey
+                                )
+                            val convertDataActorRef = instances.iterator.next()
+
+                            SendFileDataToConvertActor(convertDataActorRef, newData);
+                        }
+                    }
+                    Behaviors.same;
+                case SendFileDataToConvertActor(convertDataActorRef, newData) =>
+                    // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
+                    // Drop first 4 lines since they're just headers
+                    for (
+                        line <- Source.fromFile(newData).getLines.drop(4)
+                    ) {
+                        convertDataActorRef ! DataToConvert(line);
+                    }
+
+                    // Quit the convert data actor afterwards
+//                    convertDataActorRef ! EndConvertDataActor;
+                    Behaviors.same;
             }
         }
     }

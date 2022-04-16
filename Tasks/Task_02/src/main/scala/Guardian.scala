@@ -34,7 +34,7 @@ object Guardian {
                   databaseConnectorActor
                 );
 
-                fileParserActor ! FileNameToParse("./test_ticks.csv");
+                fileParserActor ! LoadDataFromFileAndGetParseActor("./test_ticks.csv");
 
                 Behaviors.empty;
             }

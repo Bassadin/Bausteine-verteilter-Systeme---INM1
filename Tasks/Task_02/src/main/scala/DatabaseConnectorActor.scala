@@ -1,4 +1,3 @@
-import ConvertDataActor.{dbConnectorActor, parseStringToTick}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -43,11 +42,6 @@ object DatabaseConnectorActor {
     ): Behavior[DatabaseConnectorActorProtocol] = {
 
         Behaviors.setup { context =>
-            context.system.receptionist ! Receptionist.register(
-              DatabaseConnectorActor.serviceKey,
-              context.self
-            )
-
             Behaviors.receiveMessage {
                 case TickData(newTickToStore) =>
                     storeInDB(newTickToStore, context);
