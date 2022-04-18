@@ -5,7 +5,6 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import java.sql.{Connection, DriverManager, PreparedStatement}
 
 trait DatabaseConnectorActorProtocol;
-
 object EndDbActor extends DatabaseConnectorActorProtocol;
 case class TickData(tick: Tick) extends DatabaseConnectorActorProtocol;
 
@@ -37,9 +36,7 @@ object DatabaseConnectorActor {
         context.log.info(s"Added Tick '$newTick' to DB successfully.");
     }
 
-    def apply(
-        parseFileActor: ActorRef[ConvertDataActorProtocol]
-    ): Behavior[DatabaseConnectorActorProtocol] = {
+    def apply(): Behavior[DatabaseConnectorActorProtocol] = {
 
         Behaviors.setup { context =>
             Behaviors.receiveMessage {

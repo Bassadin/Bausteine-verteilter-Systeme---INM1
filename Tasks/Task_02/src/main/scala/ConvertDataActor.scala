@@ -55,9 +55,7 @@ object ConvertDataActor {
         newParsedTick
     }
 
-    def apply(
-        parseFileActor: ActorRef[ParseFileActorProtocol]
-    ): Behavior[ConvertDataActorProtocol] = {
+    def apply(): Behavior[ConvertDataActorProtocol] = {
 
         Behaviors.setup { context =>
             implicit val timeout: Timeout =
@@ -87,10 +85,10 @@ object ConvertDataActor {
                         dbActorRef ! TickData(newTick)
                     }
 
-                    // Quit the convert data actor afterwards
-//                    dbActorRef ! EndDbActor
-
                     Behaviors.same
+                case EndConvertDataActor =>
+                    context.log.info("Terminating convert data actor...")
+                    Behaviors.stopped
             }
         }
     }

@@ -1,7 +1,14 @@
+import ActorManager.Setup
 import akka.actor.typed.ActorSystem
 
 object Main extends App {
     println("starting...");
-    val system = ActorSystem[Nothing](Guardian(), "ActorDiscovery");
+
+    val actorSystem: ActorSystem[ActorManagerProtocol] =
+        ActorSystem[ActorManagerProtocol](ActorManager(), "actorSystem");
+    actorSystem ! SetupActorManager;
+    actorSystem ! InitializeSystemWithFilePath("./test_ticks.csv");
+    actorSystem.terminate();
+
     println("terminating...");
 }
