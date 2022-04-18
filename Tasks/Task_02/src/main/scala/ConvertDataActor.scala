@@ -1,5 +1,5 @@
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
+import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
@@ -16,7 +16,7 @@ case class SendDataToConvertAndFindDBActor(newData: String)
 case class SendFileDataToAveragerActor(
     dbActorRef: ActorRef[AveragerActorProtocol],
     newData: String
-) extends ConvertDataActorProtocol;
+) extends ConvertDataActorProtocol
 
 object ConvertDataActor {
     val serviceKey: ServiceKey[ConvertDataActorProtocol] =
@@ -69,9 +69,7 @@ object ConvertDataActor {
                       Find(AveragerActor.serviceKey)
                     ) { case Success(listing: Listing) =>
                         val instances =
-                            listing.serviceInstances(
-                              AveragerActor.serviceKey
-                            )
+                            listing.serviceInstances(AveragerActor.serviceKey)
                         val averagerActorRef =
                             instances.iterator.next()
 

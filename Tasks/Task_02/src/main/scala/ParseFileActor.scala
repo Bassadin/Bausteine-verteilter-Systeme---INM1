@@ -9,18 +9,19 @@ import java.util.concurrent.TimeUnit
 import scala.util.Success
 
 trait ParseFileActorProtocol
-object StopParseFileActor extends ParseFileActorProtocol;
+object StopParseFileActor extends ParseFileActorProtocol
 case class LoadDataFromFileAndGetParseActor(newData: String)
-    extends ParseFileActorProtocol;
+    extends ParseFileActorProtocol
 case class SendFileDataToConvertActor(
     convertDataActorRef: ActorRef[ConvertDataActorProtocol],
     newData: String
-) extends ParseFileActorProtocol;
+) extends ParseFileActorProtocol
 private case class ListingResponse(listing: Receptionist.Listing)
     extends ParseFileActorProtocol
 
 object ParseFileActor {
-    val serviceKey = ServiceKey[ParseFileActorProtocol]("fileParser");
+    val serviceKey: ServiceKey[ParseFileActorProtocol] =
+        ServiceKey[ParseFileActorProtocol]("fileParser")
 
     def apply(): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
         context.log.info("ParseFileActor Setup call")
@@ -58,7 +59,7 @@ object ParseFileActor {
                 // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
                 // Drop first 4 lines since they're just headers
                 for (line <- Source.fromFile(newData).getLines.drop(4)) {
-                    convertDataActorRef ! SendDataToConvertAndFindDBActor(line);
+                    convertDataActorRef ! SendDataToConvertAndFindDBActor(line)
                 }
 
                 // Quit the convert data actor afterwards
