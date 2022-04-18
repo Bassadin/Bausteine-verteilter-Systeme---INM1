@@ -19,8 +19,6 @@ case class SendFilePathToFileParseActor(
 ) extends ActorManagerProtocol;
 
 object ActorManager {
-    final case class Setup()
-
     def apply(): Behavior[ActorManagerProtocol] = {
         Behaviors
             .setup[ActorManagerProtocol] { context =>
