@@ -11,9 +11,10 @@ import scala.util.Success
 
 trait ConvertDataActorProtocol
 object EndConvertDataActor extends ConvertDataActorProtocol
-case class DataToConvert(newData: String) extends ConvertDataActorProtocol
-case class SendFileDataToDatabaseActor(
-    dbActorRef: ActorRef[DatabaseConnectorActorProtocol],
+case class SendDataToConvertAndFindDBActor(newData: String)
+    extends ConvertDataActorProtocol
+case class SendFileDataToAveragerActor(
+    dbActorRef: ActorRef[AveragerActorProtocol],
     newData: String
 ) extends ConvertDataActorProtocol;
 
@@ -57,32 +58,35 @@ object ConvertDataActor {
 
     def apply(): Behavior[ConvertDataActorProtocol] = {
 
-        Behaviors.setup { context =>
+        Behaviors.setup[ConvertDataActorProtocol] { context =>
             implicit val timeout: Timeout =
                 Timeout.apply(100, TimeUnit.MILLISECONDS)
 
             Behaviors.receiveMessage {
-                case DataToConvert(newData) =>
+                case SendDataToConvertAndFindDBActor(newData) =>
                     context.ask(
                       context.system.receptionist,
-                      Find(DatabaseConnectorActor.serviceKey)
+                      Find(AveragerActor.serviceKey)
                     ) { case Success(listing: Listing) =>
                         val instances =
                             listing.serviceInstances(
-                              DatabaseConnectorActor.serviceKey
+                              AveragerActor.serviceKey
                             )
-                        val dbActorRef = instances.iterator.next()
+                        val averagerActorRef =
+                            instances.iterator.next()
 
-                        SendFileDataToDatabaseActor(dbActorRef, newData);
+                        SendFileDataToAveragerActor(averagerActorRef, newData);
                     }
 
                     Behaviors.same
-                case SendFileDataToDatabaseActor(dbActorRef, newData) =>
+                case SendFileDataToAveragerActor(averagerActorRef, newData) =>
                     val newTick: Tick = parseStringToTick(newData)
 
                     // Use NaN instead of null
                     if (newTick != null) {
-                        dbActorRef ! TickData(newTick)
+                        averagerActorRef ! GetDBActorRefAndSendAveragerTickData(
+                          newTick
+                        )
                     }
 
                     Behaviors.same
