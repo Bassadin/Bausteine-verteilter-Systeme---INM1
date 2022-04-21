@@ -1,5 +1,5 @@
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
+import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
@@ -50,9 +50,7 @@ object AveragerActor {
                           parseFileActorRef,
                           newTick
                         ) =>
-                        parseFileActorRef ! TickData(
-                          newTick
-                        );
+                        parseFileActorRef ! TickData(newTick)
 
                         Behaviors.same;
                 }

@@ -51,7 +51,6 @@ object ActorManager {
                         parseFileActorRef ! LoadDataFromFileAndGetParseActor(
                           filePath
                         );
-                        parseFileActorRef ! StopParseFileActor;
 
                         Behaviors.same;
                     case SetupActorManager =>
@@ -71,6 +70,16 @@ object ActorManager {
                         context.system.receptionist ! Receptionist.register(
                           ConvertDataActor.serviceKey,
                           dataConverterActor
+                        )
+
+                        val averagerActor =
+                            context.spawn(
+                              AveragerActor(),
+                              "averagerActor"
+                            )
+                        context.system.receptionist ! Receptionist.register(
+                          AveragerActor.serviceKey,
+                          averagerActor
                         )
 
                         val databaseConnectorActor = context.spawn(
