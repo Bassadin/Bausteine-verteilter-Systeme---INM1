@@ -22,7 +22,7 @@ object DatabaseConnectorActor {
 
     val preparedSqlStatement: PreparedStatement =
         connection.prepareStatement(
-          "REPLACE INTO TICKS (SYMBOL, TICKDATETIME, PRICE) VALUES (?, ?, ?)"
+          "INSERT INTO TICKS (SYMBOL, TICKDATETIME, PRICE) VALUES (?, ?, ?)"
         )
 
     def storeInDB(

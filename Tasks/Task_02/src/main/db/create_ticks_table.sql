@@ -1,8 +1,8 @@
 create table TICKS
 (
-    SYMBOL       VARCHAR not null
-        primary key,
+    SYMBOL       VARCHAR not null,
     TICKDATETIME TIMESTAMP,
-    PRICE        LONG
+    PRICE        LONG,
+    PRIMARY KEY (SYMBOL, TICKDATETIME)
 );
 
