@@ -8,7 +8,7 @@ trait DatabaseConnectorActorProtocol
 
 object EndDbActor extends DatabaseConnectorActorProtocol
 
-case class TickData(tick: Tick) extends DatabaseConnectorActorProtocol
+case class AveragerTickData(tick: Tick) extends DatabaseConnectorActorProtocol
 
 object DatabaseConnectorActor {
     val serviceKey: ServiceKey[DatabaseConnectorActorProtocol] =
@@ -42,7 +42,7 @@ object DatabaseConnectorActor {
 
         Behaviors.setup { context =>
             Behaviors.receiveMessage {
-                case TickData(newTickToStore) =>
+                case AveragerTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
                 case EndDbActor =>

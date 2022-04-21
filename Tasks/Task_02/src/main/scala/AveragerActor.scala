@@ -4,6 +4,8 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
 
+import java.time.Duration
+import scala.collection.immutable.HashMap
 import scala.concurrent.duration.DurationInt
 import scala.util.Success
 
@@ -21,7 +23,39 @@ object AveragerActor {
     val serviceKey: ServiceKey[AveragerActorProtocol] =
         ServiceKey[AveragerActorProtocol]("averagerDataActor")
 
-    def apply(): Behavior[AveragerActorProtocol] = {
+    // https://www.youtube.com/watch?v=gwZjdRQTPu8
+    // https://www.baeldung.com/scala/option-type
+    def handleNewTickDataForAveraging(
+        symbolToTicksMap: Option[Map[String, Seq[Tick]]],
+        newTick: Tick
+    ): Behavior[AveragerActorProtocol] = {
+
+        if (symbolToTicksMap.isEmpty) {
+            return this.apply(Option(HashMap[String, Seq[Tick]]()));
+        }
+
+        // https://alvinalexander.com/scala/how-to-add-update-remove-elements-immutable-maps-scala/
+        if (!symbolToTicksMap.get.contains(newTick.symbol)) {
+            val mapWithNewEmptySequence = symbolToTicksMap.get + (newTick.symbol -> Seq[Tick]());
+            this.apply(Option(mapWithNewEmptySequence));
+        } else {
+
+            val tickSeqForSymbol: Seq[Tick] = symbolToTicksMap.get(newTick.symbol);
+
+            if (tickSeqForSymbol.forall(tick => Duration.between(tick.timestamp, newTick.timestamp).toMinutes <= 5 )) {
+                val seqWithNewValue: Seq[Tick] = tickSeqForSymbol :+ newTick;
+                val mapWithNewSeqIncludingNewValue = symbolToTicksMap.get + (newTick.symbol -> seqWithNewValue);
+                this.apply(Option(mapWithNewSeqIncludingNewValue));
+            } else {
+                
+            }
+
+        }
+    }
+
+    def apply(
+        symbolToTicksMap: Option[Map[String, Seq[Tick]]]
+    ): Behavior[AveragerActorProtocol] = {
         Behaviors
             .setup[AveragerActorProtocol] { context =>
                 implicit val timeout: Timeout = 3.seconds
@@ -50,9 +84,10 @@ object AveragerActor {
                           parseFileActorRef,
                           newTick
                         ) =>
-                        parseFileActorRef ! TickData(newTick)
-
-                        Behaviors.same;
+                        handleNewTickDataForAveraging(
+                          symbolToTicksMap,
+                          newTick
+                        );
                 }
             }
     }
