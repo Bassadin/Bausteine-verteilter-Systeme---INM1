@@ -27,27 +27,53 @@ object AveragerActor {
     // https://www.baeldung.com/scala/option-type
     def handleNewTickDataForAveraging(
         symbolToTicksMap: Option[Map[String, Seq[Tick]]],
-        newTick: Tick
+        newTick: Tick,
+        dbActorRef: ActorRef[DatabaseConnectorActorProtocol]
     ): Behavior[AveragerActorProtocol] = {
 
         if (symbolToTicksMap.isEmpty) {
-            return this.apply(Option(HashMap[String, Seq[Tick]]()));
+            return this.apply(Option(HashMap[String, Seq[Tick]]()))
         }
 
         // https://alvinalexander.com/scala/how-to-add-update-remove-elements-immutable-maps-scala/
         if (!symbolToTicksMap.get.contains(newTick.symbol)) {
-            val mapWithNewEmptySequence = symbolToTicksMap.get + (newTick.symbol -> Seq[Tick]());
-            this.apply(Option(mapWithNewEmptySequence));
+            val mapWithNewEmptySequence =
+                symbolToTicksMap.get + (newTick.symbol -> Seq[Tick]())
+            this.apply(Option(mapWithNewEmptySequence))
         } else {
 
-            val tickSeqForSymbol: Seq[Tick] = symbolToTicksMap.get(newTick.symbol);
+            val tickSeqForSymbol: Seq[Tick] =
+                symbolToTicksMap.get(newTick.symbol)
 
-            if (tickSeqForSymbol.forall(tick => Duration.between(tick.timestamp, newTick.timestamp).toMinutes <= 5 )) {
-                val seqWithNewValue: Seq[Tick] = tickSeqForSymbol :+ newTick;
-                val mapWithNewSeqIncludingNewValue = symbolToTicksMap.get + (newTick.symbol -> seqWithNewValue);
-                this.apply(Option(mapWithNewSeqIncludingNewValue));
+            if (
+              tickSeqForSymbol.forall(tick =>
+                  Duration
+                      .between(tick.timestamp, newTick.timestamp)
+                      .toMinutes <= 5
+              )
+            ) {
+                // Add to existing seq
+                val seqWithNewValue: Seq[Tick] = tickSeqForSymbol :+ newTick
+                val mapWithNewSeqIncludingNewValue =
+                    symbolToTicksMap.get + (newTick.symbol -> seqWithNewValue)
+                this.apply(Option(mapWithNewSeqIncludingNewValue))
             } else {
-                
+                // Replace existing seq
+
+                val priceList: Seq[Long] = tickSeqForSymbol.map(_.price)
+                val tickPriceAverage: Long = priceList.sum / priceList.length
+
+                dbActorRef ! AveragerTickData(
+                  Tick(
+                    newTick.symbol,
+                    tickSeqForSymbol.head.timestamp,
+                    tickPriceAverage
+                  )
+                )
+
+                val mapWithNewEmptySeq =
+                    symbolToTicksMap.get + (newTick.symbol -> Seq[Tick]())
+                this.apply(Option(mapWithNewEmptySeq))
             }
 
         }
@@ -81,12 +107,13 @@ object AveragerActor {
 
                         Behaviors.same;
                     case SendAveragerTickDataToDBActor(
-                          parseFileActorRef,
+                          dbActorRef,
                           newTick
                         ) =>
                         handleNewTickDataForAveraging(
                           symbolToTicksMap,
-                          newTick
+                          newTick,
+                          dbActorRef
                         );
                 }
             }

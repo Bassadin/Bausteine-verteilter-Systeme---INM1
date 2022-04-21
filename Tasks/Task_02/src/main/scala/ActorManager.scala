@@ -5,6 +5,7 @@ import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 
+import scala.collection.immutable.HashMap
 import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.util.{Failure, Success}
@@ -74,7 +75,9 @@ object ActorManager {
 
                         val averagerActor =
                             context.spawn(
-                              AveragerActor(),
+                              AveragerActor(
+                                Option(HashMap[String, Seq[Tick]]())
+                              ),
                               "averagerActor"
                             )
                         context.system.receptionist ! Receptionist.register(
