@@ -72,7 +72,7 @@ object AveragerActor {
                 )
 
                 val mapWithNewEmptySeq =
-                    symbolToTicksMap.get + (newTick.symbol -> Seq[Tick]())
+                    symbolToTicksMap.get + (newTick.symbol -> (Seq[Tick]() :+ newTick))
                 this.apply(Option(mapWithNewEmptySeq))
             }
 
