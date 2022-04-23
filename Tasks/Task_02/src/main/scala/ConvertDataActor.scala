@@ -1,5 +1,5 @@
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
-import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
@@ -9,16 +9,21 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import scala.util.Success
 
-trait ConvertDataActorProtocol
-object EndConvertDataActor extends ConvertDataActorProtocol
-case class SendDataToConvertAndFindDBActor(newData: String)
-    extends ConvertDataActorProtocol
-case class SendFileDataToAveragerActor(
-    dbActorRef: ActorRef[AveragerActorProtocol],
-    newData: String
-) extends ConvertDataActorProtocol
-
 object ConvertDataActor {
+    trait ConvertDataActorProtocol
+
+    object TerminateConvertDataActor extends ConvertDataActorProtocol;
+    case class TerminateConvertDataActorWithNextActorRef(
+        averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
+    ) extends ConvertDataActorProtocol;
+
+    case class SendDataToConvertAndFindDBActor(newData: String)
+        extends ConvertDataActorProtocol
+    case class SendFileDataToAveragerActor(
+        dbActorRef: ActorRef[AveragerActor.AveragerActorProtocol],
+        newData: String
+    ) extends ConvertDataActorProtocol
+
     val serviceKey: ServiceKey[ConvertDataActorProtocol] =
         ServiceKey[ConvertDataActorProtocol]("convertDataActor")
 
@@ -63,6 +68,31 @@ object ConvertDataActor {
                 Timeout.apply(100, TimeUnit.MILLISECONDS)
 
             Behaviors.receiveMessage {
+                case TerminateConvertDataActor =>
+                    context.ask(
+                      context.system.receptionist,
+                      Receptionist.Find(AveragerActor.serviceKey)
+                    ) { case Success(listing) =>
+                        val instances = listing.serviceInstances(
+                          AveragerActor.serviceKey
+                        )
+                        val averagerActorReference = instances.iterator.next()
+                        TerminateConvertDataActorWithNextActorRef(
+                          averagerActorReference
+                        )
+                    }
+                    Behaviors.same;
+
+                case TerminateConvertDataActorWithNextActorRef(
+                      averagerActorReference
+                    ) =>
+                    context.system.receptionist ! Receptionist.Deregister(
+                      this.serviceKey,
+                      context.self
+                    )
+                    averagerActorReference ! AveragerActor.TerminateAveragerActor
+                    Behaviors.stopped
+
                 case SendDataToConvertAndFindDBActor(newData) =>
                     context.ask(
                       context.system.receptionist,
@@ -82,15 +112,13 @@ object ConvertDataActor {
 
                     // Use NaN instead of null
                     if (newTick != null) {
-                        averagerActorRef ! GetDBActorRefAndSendAveragerTickData(
-                          newTick
-                        )
+                        averagerActorRef ! AveragerActor
+                            .GetDBActorRefAndSendAveragerTickData(
+                              newTick
+                            )
                     }
 
                     Behaviors.same
-                case EndConvertDataActor =>
-                    context.log.info("Terminating convert data actor...")
-                    Behaviors.stopped
             }
         }
     }

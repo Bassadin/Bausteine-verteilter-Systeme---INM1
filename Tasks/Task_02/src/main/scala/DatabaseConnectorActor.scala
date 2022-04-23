@@ -1,16 +1,18 @@
 import akka.actor.typed.Behavior
-import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 
 import java.sql.{Connection, DriverManager, PreparedStatement}
 
-trait DatabaseConnectorActorProtocol
-
-object EndDbActor extends DatabaseConnectorActorProtocol
-
-case class AveragerTickData(tick: Tick) extends DatabaseConnectorActorProtocol
-
 object DatabaseConnectorActor {
+    trait DatabaseConnectorActorProtocol
+
+    object TerminateDatabaseConnectorActor
+        extends DatabaseConnectorActorProtocol
+
+    case class AveragerTickData(tick: Tick)
+        extends DatabaseConnectorActorProtocol
+
     val serviceKey: ServiceKey[DatabaseConnectorActorProtocol] =
         ServiceKey[DatabaseConnectorActorProtocol]("databaseConnectorActor")
 
@@ -45,7 +47,12 @@ object DatabaseConnectorActor {
                 case AveragerTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
-                case EndDbActor =>
+                case TerminateDatabaseConnectorActor =>
+                    context.system.receptionist ! Receptionist.Deregister(
+                      this.serviceKey,
+                      context.self
+                    )
+
                     context.log.info(
                       "End signal received, terminating DB actor and closing DB connection"
                     )

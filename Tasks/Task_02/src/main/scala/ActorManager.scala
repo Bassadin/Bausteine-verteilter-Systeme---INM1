@@ -10,22 +10,52 @@ import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.util.{Failure, Success}
 
-trait ActorManagerProtocol;
-object SetupActorManager extends ActorManagerProtocol;
-case class InitializeSystemWithFilePath(filePath: String)
-    extends ActorManagerProtocol;
-case class SendFilePathToFileParseActor(
-    convertDataActorRef: ActorRef[ParseFileActorProtocol],
-    filePath: String
-) extends ActorManagerProtocol;
-
 object ActorManager {
+    trait ActorManagerProtocol;
+
+    object SetupActorManager extends ActorManagerProtocol;
+
+    object TerminateSystem extends ActorManagerProtocol;
+    case class TerminateSystemWithNextActorRef(
+        parseFileActorRef: ActorRef[ParseFileActor.ParseFileActorProtocol]
+    ) extends ActorManagerProtocol;
+
+    case class InitializeSystemWithFilePath(filePath: String)
+        extends ActorManagerProtocol;
+
+    case class SendFilePathToFileParseActor(
+        convertDataActorRef: ActorRef[ParseFileActor.ParseFileActorProtocol],
+        filePath: String
+    ) extends ActorManagerProtocol;
+
     def apply(): Behavior[ActorManagerProtocol] = {
         Behaviors
             .setup[ActorManagerProtocol] { context =>
                 implicit val timeout: Timeout = 3.seconds
 
                 Behaviors.receiveMessage {
+                    case TerminateSystem =>
+                        context.ask(
+                          context.system.receptionist,
+                          Receptionist.Find(ParseFileActor.serviceKey)
+                        ) { case Success(listing) =>
+                            val instances = listing.serviceInstances(
+                              ParseFileActor.serviceKey
+                            )
+                            val parseFileActorReference =
+                                instances.iterator.next()
+                            TerminateSystemWithNextActorRef(
+                              parseFileActorReference
+                            )
+                        }
+                        Behaviors.same;
+
+                    case TerminateSystemWithNextActorRef(
+                          parseFileActorReference
+                        ) =>
+                        parseFileActorReference ! ParseFileActor.TerminateParseFileActor
+                        Behaviors.stopped
+
                     case InitializeSystemWithFilePath(filePath) =>
                         context.ask(
                           context.system.receptionist,
@@ -49,9 +79,10 @@ object ActorManager {
                           parseFileActorRef,
                           filePath
                         ) =>
-                        parseFileActorRef ! LoadDataFromFileAndGetParseActor(
-                          filePath
-                        );
+                        parseFileActorRef ! ParseFileActor
+                            .LoadDataFromFileAndGetParseActor(
+                              filePath
+                            );
 
                         Behaviors.same;
                     case SetupActorManager =>

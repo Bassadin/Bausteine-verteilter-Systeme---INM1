@@ -1,3 +1,5 @@
+import ConvertDataActor.ConvertDataActorProtocol
+
 import scala.io.Source
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
@@ -8,18 +10,21 @@ import akka.util.Timeout
 import java.util.concurrent.TimeUnit
 import scala.util.Success
 
-trait ParseFileActorProtocol
-object StopParseFileActor extends ParseFileActorProtocol
-case class LoadDataFromFileAndGetParseActor(newData: String)
-    extends ParseFileActorProtocol
-case class SendFileDataToConvertActor(
-    convertDataActorRef: ActorRef[ConvertDataActorProtocol],
-    newData: String
-) extends ParseFileActorProtocol
-private case class ListingResponse(listing: Receptionist.Listing)
-    extends ParseFileActorProtocol
-
 object ParseFileActor {
+    trait ParseFileActorProtocol
+
+    object TerminateParseFileActor extends ParseFileActorProtocol;
+    case class TerminateParseFileActorWithNextActorRef(
+        parseFileActorRef: ActorRef[ConvertDataActorProtocol]
+    ) extends ParseFileActorProtocol;
+
+    case class LoadDataFromFileAndGetParseActor(newData: String)
+        extends ParseFileActorProtocol
+    case class SendFileDataToConvertActor(
+        convertDataActorRef: ActorRef[ConvertDataActorProtocol],
+        newData: String
+    ) extends ParseFileActorProtocol
+
     val serviceKey: ServiceKey[ParseFileActorProtocol] =
         ServiceKey[ParseFileActorProtocol]("fileParser")
 
@@ -30,9 +35,31 @@ object ParseFileActor {
             Timeout.apply(100, TimeUnit.MILLISECONDS)
 
         Behaviors.receiveMessagePartial {
-            case StopParseFileActor =>
-                context.log.info("Terminating parse file actor...")
-                Behaviors.stopped;
+            case TerminateParseFileActor =>
+                context.ask(
+                  context.system.receptionist,
+                  Receptionist.Find(ConvertDataActor.serviceKey)
+                ) { case Success(listing) =>
+                    val instances = listing.serviceInstances(
+                      ConvertDataActor.serviceKey
+                    )
+                    val convertDataActorReference = instances.iterator.next()
+                    TerminateParseFileActorWithNextActorRef(
+                      convertDataActorReference
+                    )
+                }
+                Behaviors.same;
+
+            case TerminateParseFileActorWithNextActorRef(
+                  convertDataActorReference
+                ) =>
+                context.system.receptionist ! Receptionist.Deregister(
+                  this.serviceKey,
+                  context.self
+                )
+                convertDataActorReference ! ConvertDataActor.TerminateConvertDataActor
+                Behaviors.stopped
+
             case LoadDataFromFileAndGetParseActor(newData) =>
                 context.log.info(
                   "Valid file path: " + newData + ". Now parsing..."
@@ -59,11 +86,13 @@ object ParseFileActor {
                 // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
                 // Drop first 4 lines since they're just headers
                 for (line <- Source.fromFile(newData).getLines.drop(4)) {
-                    convertDataActorRef ! SendDataToConvertAndFindDBActor(line)
+                    convertDataActorRef ! ConvertDataActor
+                        .SendDataToConvertAndFindDBActor(line)
                 }
 
-                // Quit the convert data actor afterwards
-                //                    convertDataActorRef ! EndConvertDataActor;
+                convertDataActorRef ! ConvertDataActor.TerminateConvertDataActor
+                context.self ! this.TerminateParseFileActor
+
                 Behaviors.same;
         }
     }

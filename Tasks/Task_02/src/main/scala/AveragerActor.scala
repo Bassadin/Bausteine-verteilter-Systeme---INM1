@@ -1,5 +1,5 @@
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
-import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
@@ -9,26 +9,41 @@ import scala.collection.immutable.HashMap
 import scala.concurrent.duration.DurationInt
 import scala.util.Success
 
-trait AveragerActorProtocol
-
-object EndAveragerActor extends AveragerActorProtocol
-case class GetDBActorRefAndSendAveragerTickData(newTick: Tick)
-    extends AveragerActorProtocol
-case class SendAveragerTickDataToDBActor(
-    dbActorRef: ActorRef[DatabaseConnectorActorProtocol],
-    newTick: Tick
-) extends AveragerActorProtocol
-
 object AveragerActor {
+    trait AveragerActorProtocol
+
+    object TerminateAveragerActor extends AveragerActorProtocol;
+    case class TerminateAveragerActorWithNextActorRef(
+        databaseConnectorActorReference: ActorRef[
+          DatabaseConnectorActor.DatabaseConnectorActorProtocol
+        ]
+    ) extends AveragerActorProtocol;
+
+    case class GetDBActorRefAndSendAveragerTickData(newTick: Tick)
+        extends AveragerActorProtocol
+    case class SendAveragerTickDataToDBActor(
+        dbActorRef: ActorRef[
+          DatabaseConnectorActor.DatabaseConnectorActorProtocol
+        ],
+        newTick: Tick
+    ) extends AveragerActorProtocol
     val serviceKey: ServiceKey[AveragerActorProtocol] =
         ServiceKey[AveragerActorProtocol]("averagerDataActor")
+
+    def averagePriceOfTicks(tickList: Seq[Tick]): Long = {
+        val priceList: Seq[Long] = tickList.map(_.price)
+        val tickPriceAverage: Long = priceList.sum / priceList.length
+        tickPriceAverage
+    }
 
     // https://www.youtube.com/watch?v=gwZjdRQTPu8
     // https://www.baeldung.com/scala/option-type
     def handleNewTickDataForAveraging(
         symbolToTicksMap: Option[Map[String, Seq[Tick]]],
         newTick: Tick,
-        dbActorRef: ActorRef[DatabaseConnectorActorProtocol]
+        dbActorRef: ActorRef[
+          DatabaseConnectorActor.DatabaseConnectorActorProtocol
+        ]
     ): Behavior[AveragerActorProtocol] = {
 
         if (symbolToTicksMap.isEmpty) {
@@ -60,22 +75,20 @@ object AveragerActor {
             } else {
                 // Replace existing seq
 
-                val priceList: Seq[Long] = tickSeqForSymbol.map(_.price)
-                val tickPriceAverage: Long = priceList.sum / priceList.length
-
-                dbActorRef ! AveragerTickData(
+                dbActorRef ! DatabaseConnectorActor.AveragerTickData(
                   Tick(
                     newTick.symbol,
                     tickSeqForSymbol.head.timestamp,
-                    tickPriceAverage
+                    averagePriceOfTicks(tickSeqForSymbol)
                   )
                 )
 
                 val mapWithNewEmptySeq =
-                    symbolToTicksMap.get + (newTick.symbol -> (Seq[Tick]() :+ newTick))
+                    symbolToTicksMap.get + (newTick.symbol -> (Seq[
+                      Tick
+                    ]() :+ newTick))
                 this.apply(Option(mapWithNewEmptySeq))
             }
-
         }
     }
 
@@ -87,6 +100,46 @@ object AveragerActor {
                 implicit val timeout: Timeout = 3.seconds
 
                 Behaviors.receiveMessage {
+                    case TerminateAveragerActor =>
+                        context.ask(
+                          context.system.receptionist,
+                          Receptionist.Find(DatabaseConnectorActor.serviceKey)
+                        ) { case Success(listing) =>
+                            val instances = listing.serviceInstances(
+                              DatabaseConnectorActor.serviceKey
+                            )
+                            val databaseConnectorActorReference =
+                                instances.iterator.next()
+                            TerminateAveragerActorWithNextActorRef(
+                              databaseConnectorActorReference
+                            )
+                        }
+                        Behaviors.same;
+
+                    case TerminateAveragerActorWithNextActorRef(
+                          databaseConnectorActorReference
+                        ) =>
+                        // https://stackoverflow.com/a/8610807/3526350
+                        symbolToTicksMap.get.foreach { case (symbol, ticks) =>
+                            if (!ticks.isEmpty) {
+                                databaseConnectorActorReference ! DatabaseConnectorActor
+                                    .AveragerTickData(
+                                      Tick(
+                                        symbol,
+                                        ticks.head.timestamp,
+                                        averagePriceOfTicks(ticks)
+                                      )
+                                    )
+                            }
+                        }
+
+                        context.system.receptionist ! Receptionist.Deregister(
+                          this.serviceKey,
+                          context.self
+                        )
+                        databaseConnectorActorReference ! DatabaseConnectorActor.TerminateDatabaseConnectorActor
+                        Behaviors.stopped
+
                     case GetDBActorRefAndSendAveragerTickData(newTick) =>
                         context.ask(
                           context.system.receptionist,
