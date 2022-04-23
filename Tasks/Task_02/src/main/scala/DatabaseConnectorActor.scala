@@ -27,6 +27,9 @@ object DatabaseConnectorActor {
           "INSERT INTO TICKS (SYMBOL, TICKDATETIME, PRICE) VALUES (?, ?, ?)"
         )
 
+    val clearStatement = connection.createStatement()
+    clearStatement.executeUpdate("DELETE FROM TICKS")
+
     def storeInDB(
         newTick: Tick,
         context: ActorContext[DatabaseConnectorActorProtocol]
