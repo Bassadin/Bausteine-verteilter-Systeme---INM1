@@ -61,6 +61,11 @@ object AveragerActor {
             val tickSeqForSymbol: Seq[Tick] =
                 symbolToTicksMap.get(newTick.symbol)
 
+            /*
+            If time difference between all entries for a single symbol and the new
+            tick are within 5 mins, add the new tick to the existing seq.
+            Otherwise, send to db actor and initialize new seq
+             */
             if (
               tickSeqForSymbol.forall(tick =>
                   Duration
@@ -76,18 +81,20 @@ object AveragerActor {
             } else {
                 // Replace existing seq
 
+                val averagedTickDataForExistingSeq: Tick = Tick(
+                  newTick.symbol,
+                  tickSeqForSymbol.head.timestamp,
+                  averagePriceOfTicks(tickSeqForSymbol)
+                )
+
                 dbActorRef ! DatabaseConnectorActor.AveragerTickData(
-                  Tick(
-                    newTick.symbol,
-                    tickSeqForSymbol.head.timestamp,
-                    averagePriceOfTicks(tickSeqForSymbol)
-                  )
+                  averagedTickDataForExistingSeq
                 )
 
                 val mapWithNewEmptySeq =
-                    symbolToTicksMap.get + (newTick.symbol -> (Seq[
-                      Tick
-                    ]() :+ newTick))
+                    symbolToTicksMap.get +
+                        (newTick.symbol -> (Seq[Tick]() :+ newTick))
+
                 this.apply(Option(mapWithNewEmptySeq))
             }
         }
