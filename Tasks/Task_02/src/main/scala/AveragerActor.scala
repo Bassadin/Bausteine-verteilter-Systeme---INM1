@@ -12,12 +12,12 @@ import scala.util.Success
 object AveragerActor {
     trait AveragerActorProtocol
 
-    object TerminateAveragerActor extends AveragerActorProtocol;
+    object TerminateAveragerActor extends AveragerActorProtocol
     case class TerminateAveragerActorWithNextActorRef(
         databaseConnectorActorReference: ActorRef[
           DatabaseConnectorActor.DatabaseConnectorActorProtocol
         ]
-    ) extends AveragerActorProtocol;
+    ) extends AveragerActorProtocol
 
     case class GetDBActorRefAndSendAveragerTickData(newTick: Tick)
         extends AveragerActorProtocol
@@ -121,7 +121,7 @@ object AveragerActor {
                         ) =>
                         // https://stackoverflow.com/a/8610807/3526350
                         symbolToTicksMap.get.foreach { case (symbol, ticks) =>
-                            if (!ticks.isEmpty) {
+                            if (ticks.nonEmpty) {
                                 databaseConnectorActorReference ! DatabaseConnectorActor
                                     .AveragerTickData(
                                       Tick(

@@ -12,10 +12,10 @@ import scala.util.Success
 object ConvertDataActor {
     trait ConvertDataActorProtocol
 
-    object TerminateConvertDataActor extends ConvertDataActorProtocol;
+    object TerminateConvertDataActor extends ConvertDataActorProtocol
     case class TerminateConvertDataActorWithNextActorRef(
         averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
-    ) extends ConvertDataActorProtocol;
+    ) extends ConvertDataActorProtocol
 
     case class SendDataToConvertAndFindDBActor(newData: String)
         extends ConvertDataActorProtocol

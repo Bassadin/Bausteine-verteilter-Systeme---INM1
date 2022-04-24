@@ -2,7 +2,7 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 
-import java.sql.{Connection, DriverManager, PreparedStatement}
+import java.sql.{Connection, DriverManager, PreparedStatement, Statement}
 
 object DatabaseConnectorActor {
     trait DatabaseConnectorActorProtocol
@@ -27,7 +27,7 @@ object DatabaseConnectorActor {
           "INSERT INTO TICKS (SYMBOL, TICKDATETIME, PRICE) VALUES (?, ?, ?)"
         )
 
-    val clearStatement = connection.createStatement()
+    val clearStatement: Statement = connection.createStatement()
     clearStatement.executeUpdate("DELETE FROM TICKS")
 
     def storeInDB(

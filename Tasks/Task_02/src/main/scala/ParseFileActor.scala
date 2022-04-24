@@ -13,10 +13,10 @@ import scala.util.Success
 object ParseFileActor {
     trait ParseFileActorProtocol
 
-    object TerminateParseFileActor extends ParseFileActorProtocol;
+    object TerminateParseFileActor extends ParseFileActorProtocol
     case class TerminateParseFileActorWithNextActorRef(
         parseFileActorRef: ActorRef[ConvertDataActorProtocol]
-    ) extends ParseFileActorProtocol;
+    ) extends ParseFileActorProtocol
 
     case class LoadDataFromFileAndGetParseActor(newData: String)
         extends ParseFileActorProtocol

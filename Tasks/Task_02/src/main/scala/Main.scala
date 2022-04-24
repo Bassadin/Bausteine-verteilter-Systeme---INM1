@@ -10,7 +10,6 @@ object Main extends App {
         )
     actorSystem ! ActorManager.SetupActorManager
     actorSystem ! ActorManager.InitializeSystemWithFilePath("./test_ticks.csv")
-//    actorSystem ! ActorManager.TerminateSystem
 
     println("terminating...")
 }
