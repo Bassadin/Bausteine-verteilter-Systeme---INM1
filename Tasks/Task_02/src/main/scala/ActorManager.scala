@@ -39,6 +39,8 @@ object ActorManager {
                                     Behaviors.stopped
 
                                 case InitializeSystemWithFilePath(filePath) =>
+                                    // Maybe refactor into helper method or use something else entirely
+                                    // In any way, seems wrong to do it this way...
                                     context.ask(
                                       context.system.receptionist,
                                       Find(ParseFileActor.serviceKey)
