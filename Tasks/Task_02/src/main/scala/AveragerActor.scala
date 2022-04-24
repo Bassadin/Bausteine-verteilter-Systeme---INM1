@@ -30,6 +30,7 @@ object AveragerActor {
     val serviceKey: ServiceKey[AveragerActorProtocol] =
         ServiceKey[AveragerActorProtocol]("averagerDataActor")
 
+    // Get average of a Tick Seq
     def averagePriceOfTicks(tickList: Seq[Tick]): Long = {
         val priceList: Seq[Long] = tickList.map(_.price)
         val tickPriceAverage: Long = priceList.sum / priceList.length
@@ -122,6 +123,7 @@ object AveragerActor {
                         // https://stackoverflow.com/a/8610807/3526350
                         symbolToTicksMap.get.foreach { case (symbol, ticks) =>
                             if (ticks.nonEmpty) {
+                                // Clean up remaining tick average data
                                 databaseConnectorActorReference ! DatabaseConnectorActor
                                     .AveragerTickData(
                                       Tick(
