@@ -8,6 +8,9 @@ name := "Task_03"
 // https://mvnrepository.com/artifact/com.typesafe.akka/akka-actor-typed
 libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.6.18"
 
+val AkkaVersion = "2.6.19"
+libraryDependencies += "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion
+
 // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
 libraryDependencies += "org.slf4j" % "slf4j-api" % "2.0.0-alpha6"
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.0-alpha6"
