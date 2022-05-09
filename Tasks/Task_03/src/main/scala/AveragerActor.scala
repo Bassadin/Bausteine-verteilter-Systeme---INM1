@@ -105,6 +105,9 @@ object AveragerActor {
     ): Behavior[AveragerActorProtocol] = {
         Behaviors
             .setup[AveragerActorProtocol] { context =>
+
+                context.log.info("--- Averager Actor UP ---")
+
                 implicit val timeout: Timeout = 3.seconds
 
                 Behaviors.receiveMessage {

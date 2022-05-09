@@ -64,6 +64,9 @@ object ConvertDataActor {
     def apply(): Behavior[ConvertDataActorProtocol] = {
 
         Behaviors.setup[ConvertDataActorProtocol] { context =>
+
+            context.log.info("--- Convert Data Actor UP ---")
+
             implicit val timeout: Timeout =
                 Timeout.apply(100, TimeUnit.MILLISECONDS)
 

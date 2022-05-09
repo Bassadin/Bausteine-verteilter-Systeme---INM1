@@ -1,46 +1,52 @@
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
+
+import java.lang.Thread
+import scala.collection.immutable.HashMap
 
 object Main extends App {
     // GitHub-Repo: https://github.com/Bassadin/Bausteine-verteilter-Systeme-INM1
 
-    object RootBehavior {
-        def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { context =>
-            // Create an actor that handles cluster domain events
-            context.spawn(ClusterListener(), "ClusterListener")
-
-            Behaviors.empty
-        }
-    }
-
-    def startup(port: Int): Unit = {
-        val config = ConfigFactory
+    def createConfigWithPort(port: Int): Config = {
+        ConfigFactory
             .parseString(s"akka.remote.artery.canonical.port=$port")
             .withFallback(ConfigFactory.load())
-
-        //        println("starting...")
-        //
-        //        val actorSystem: ActorSystem[ActorManager.ActorManagerProtocol] =
-        //            ActorSystem[ActorManager.ActorManagerProtocol](
-        //                ActorManager(),
-        //                "hfu"
-        //                , config
-        //            )
-        //        actorSystem ! ActorManager.SetupActorManager
-        ////        actorSystem ! ActorManager.InitializeSystemWithFilePath("./test_ticks.csv")
-        //
-        //        println("terminating...")
-
-
-        ActorSystem[Nothing](RootBehavior(), "hfu", config)
     }
+    val actorManagerRef = ActorSystem(
+        ActorManager(),
+        "hfu",
+        createConfigWithPort(25251)
+    )
+
+    println("Creating Actor Systems")
+
+    ActorSystem(
+        ParseFileActor(),
+        "hfu",
+        createConfigWithPort(25252)
+    )
+    ActorSystem(
+        ConvertDataActor(),
+        "hfu",
+        createConfigWithPort(25551)
+    )
+    ActorSystem(
+        AveragerActor(Option(HashMap[String, Seq[Tick]]())),
+        "hfu",
+        createConfigWithPort(25552)
+    )
+    ActorSystem(
+        DatabaseConnectorActor(),
+        "hfu",
+        createConfigWithPort(25553)
+    )
+
+    println("Finished creating Actor Systems")
+
+    actorManagerRef ! ActorManager.InitializeSystemWithFilePath(
+        "./test_ticks.csv"
+    )
 
 
-    val ports =
-        if (args.isEmpty)
-            Seq(25251, 25252, 0)
-        else
-            args.toSeq.map(_.toInt)
-    ports.foreach(startup)
 }

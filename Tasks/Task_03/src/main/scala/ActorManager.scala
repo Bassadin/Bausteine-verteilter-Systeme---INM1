@@ -29,6 +29,8 @@ object ActorManager {
     def apply(): Behavior[ActorManagerProtocol] = {
         Behaviors
             .setup[ActorManagerProtocol] { context =>
+                context.log.info("--- Actor Manager Actor UP ---")
+
                 implicit val timeout: Timeout = 3.seconds
 
                 Behaviors
