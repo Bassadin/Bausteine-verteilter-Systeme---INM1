@@ -1,4 +1,4 @@
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 import com.typesafe.config.{Config, ConfigFactory}
 
@@ -13,38 +13,33 @@ object Main extends App {
             .parseString(s"akka.remote.artery.canonical.port=$port")
             .withFallback(ConfigFactory.load())
     }
-    val actorManagerRef = ActorSystem(
-        ActorManager(),
-        "hfu",
-        createConfigWithPort(25251)
-    )
 
     println("Creating Actor Systems")
 
-    ActorSystem(
+    val parseFileActorRef = ActorSystem(
         ParseFileActor(),
         "hfu",
-        createConfigWithPort(25252)
+        createConfigWithPort(25251)
     )
     ActorSystem(
         ConvertDataActor(),
         "hfu",
-        createConfigWithPort(25551)
+        createConfigWithPort(25252)
     )
     ActorSystem(
         AveragerActor(),
         "hfu",
-        createConfigWithPort(25552)
+        createConfigWithPort(47112)
     )
     ActorSystem(
         DatabaseConnectorActor(),
         "hfu",
-        createConfigWithPort(25553)
+        createConfigWithPort(47111)
     )
 
     println("Finished creating Actor Systems")
 
-    actorManagerRef ! ActorManager.InitializeSystemWithFilePath(
+    parseFileActorRef ! ParseFileActor.LoadDataFromFileAndGetParseActor(
         "./test_ticks.csv"
     )
 
