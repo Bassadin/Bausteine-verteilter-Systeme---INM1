@@ -51,13 +51,15 @@ object ActorManager {
                                             listing.serviceInstances(
                                               ParseFileActor.serviceKey
                                             )
+
                                         val parseFileActorRef =
-                                            instances.iterator.next()
+                                            instances.head
 
                                         SendFilePathToFileParseActor(
                                           parseFileActorRef,
                                           filePath
                                         )
+
                                     }
 
                                     Behaviors.same;
