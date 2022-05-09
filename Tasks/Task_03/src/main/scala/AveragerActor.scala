@@ -40,7 +40,7 @@ object AveragerActor {
     // https://www.youtube.com/watch?v=gwZjdRQTPu8
     // https://www.baeldung.com/scala/option-type
     def handleNewTickDataForAveraging(
-        symbolToTicksMap: Option[Map[String, Seq[Tick]]],
+        symbolToTicksMap: Map[String, Seq[Tick]],
         newTick: Tick,
         dbActorRef: ActorRef[
           DatabaseConnectorActor.DatabaseConnectorActorProtocol
@@ -48,18 +48,18 @@ object AveragerActor {
     ): Behavior[AveragerActorProtocol] = {
 
         if (symbolToTicksMap.isEmpty) {
-            return this.apply(Option(HashMap[String, Seq[Tick]]()))
+            return this.apply(HashMap[String, Seq[Tick]]())
         }
 
         // https://alvinalexander.com/scala/how-to-add-update-remove-elements-immutable-maps-scala/
-        if (!symbolToTicksMap.get.contains(newTick.symbol)) {
+        if (!symbolToTicksMap.contains(newTick.symbol)) {
             val mapWithNewEmptySequence =
-                symbolToTicksMap.get + (newTick.symbol -> Seq[Tick]())
-            this.apply(Option(mapWithNewEmptySequence))
+                symbolToTicksMap + (newTick.symbol -> Seq[Tick]())
+            this.apply(mapWithNewEmptySequence)
         } else {
 
             val tickSeqForSymbol: Seq[Tick] =
-                symbolToTicksMap.get(newTick.symbol)
+                symbolToTicksMap(newTick.symbol)
 
             /*
             If time difference between all entries for a single symbol and the new
@@ -76,8 +76,8 @@ object AveragerActor {
                 // Add to existing seq
                 val seqWithNewValue: Seq[Tick] = tickSeqForSymbol :+ newTick
                 val mapWithNewSeqIncludingNewValue =
-                    symbolToTicksMap.get + (newTick.symbol -> seqWithNewValue)
-                this.apply(Option(mapWithNewSeqIncludingNewValue))
+                    symbolToTicksMap + (newTick.symbol -> seqWithNewValue)
+                this.apply(mapWithNewSeqIncludingNewValue)
             } else {
                 // Replace existing seq
 
@@ -92,20 +92,23 @@ object AveragerActor {
                 )
 
                 val mapWithNewEmptySeq =
-                    symbolToTicksMap.get +
+                    symbolToTicksMap +
                         (newTick.symbol -> (Seq[Tick]() :+ newTick))
 
-                this.apply(Option(mapWithNewEmptySeq))
+                this.apply(mapWithNewEmptySeq)
             }
         }
     }
 
+    def apply(): Behavior[AveragerActorProtocol] = {
+        apply(HashMap[String, Seq[Tick]]())
+    }
+
     def apply(
-        symbolToTicksMap: Option[Map[String, Seq[Tick]]]
+        symbolToTicksMap: Map[String, Seq[Tick]]
     ): Behavior[AveragerActorProtocol] = {
         Behaviors
             .setup[AveragerActorProtocol] { context =>
-
                 context.log.info("--- Averager Actor UP ---")
 
                 implicit val timeout: Timeout = 3.seconds
@@ -131,7 +134,7 @@ object AveragerActor {
                           databaseConnectorActorReference
                         ) =>
                         // https://stackoverflow.com/a/8610807/3526350
-                        symbolToTicksMap.get.foreach { case (symbol, ticks) =>
+                        symbolToTicksMap.foreach { case (symbol, ticks) =>
                             if (ticks.nonEmpty) {
                                 // Clean up remaining tick average data
                                 databaseConnectorActorReference ! DatabaseConnectorActor

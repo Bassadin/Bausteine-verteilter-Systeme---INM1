@@ -32,7 +32,7 @@ object Main extends App {
         createConfigWithPort(25551)
     )
     ActorSystem(
-        AveragerActor(Option(HashMap[String, Seq[Tick]]())),
+        AveragerActor(),
         "hfu",
         createConfigWithPort(25552)
     )
