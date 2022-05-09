@@ -29,7 +29,8 @@ object ParseFileActor {
         ServiceKey[ParseFileActorProtocol]("fileParser")
 
     def apply(): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
-        context.log.info("ParseFileActor Setup call")
+
+        context.log.info("--- Parse File Actor UP ---")
 
         implicit val timeout: Timeout =
             Timeout.apply(100, TimeUnit.MILLISECONDS)
