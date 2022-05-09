@@ -14,14 +14,14 @@ object ActorManager {
 
     trait ActorManagerProtocol
 
-    object SetupActorManager extends ActorManagerProtocol
+    final object SetupActorManager extends ActorManagerProtocol
 
-    object TerminateSystem extends ActorManagerProtocol
+    final object TerminateSystem extends ActorManagerProtocol
 
-    case class InitializeSystemWithFilePath(filePath: String)
+    final case class InitializeSystemWithFilePath(filePath: String)
         extends ActorManagerProtocol
 
-    case class SendFilePathToFileParseActor(
+    final case class SendFilePathToFileParseActor(
         convertDataActorRef: ActorRef[ParseFileActor.ParseFileActorProtocol],
         filePath: String
     ) extends ActorManagerProtocol

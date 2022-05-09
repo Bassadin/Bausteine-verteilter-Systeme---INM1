@@ -158,8 +158,7 @@ object AveragerActor {
                                 listing.serviceInstances(
                                   DatabaseConnectorActor.serviceKey
                                 )
-                            val parseFileActorRef =
-                                instances.iterator.next()
+                            val parseFileActorRef = instances.head
 
                             SendAveragerTickDataToDBActor(
                               parseFileActorRef,
