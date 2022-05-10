@@ -123,7 +123,8 @@ object AveragerActor {
                               DatabaseConnectorActor.serviceKey
                             )
                             val databaseConnectorActorReference =
-                                instances.iterator.next()
+                                instances.head
+
                             TerminateAveragerActorWithNextActorRef(
                               databaseConnectorActorReference
                             )

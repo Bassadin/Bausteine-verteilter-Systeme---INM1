@@ -74,7 +74,7 @@ object ParseFileActor {
                         listing.serviceInstances(
                           ConvertDataActor.serviceKey
                         )
-                    val convertDataActorRef = instances.iterator.next()
+                    val convertDataActorRef = instances.head
 
                     SendFileDataToConvertActor(
                       convertDataActorRef,

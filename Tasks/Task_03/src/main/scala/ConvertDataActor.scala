@@ -79,7 +79,7 @@ object ConvertDataActor {
                         val instances = listing.serviceInstances(
                           AveragerActor.serviceKey
                         )
-                        val averagerActorReference = instances.iterator.next()
+                        val averagerActorReference = instances.head
                         TerminateConvertDataActorWithNextActorRef(
                           averagerActorReference
                         )
@@ -104,7 +104,7 @@ object ConvertDataActor {
                         val instances =
                             listing.serviceInstances(AveragerActor.serviceKey)
                         val averagerActorRef =
-                            instances.iterator.next()
+                            instances.head
 
                         SendFileDataToAveragerActor(averagerActorRef, newData);
                     }
