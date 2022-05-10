@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import java.sql.{Connection, DriverManager, PreparedStatement, Statement}
 
 object DatabaseConnectorActor {
-    trait DatabaseConnectorActorProtocol
+    trait DatabaseConnectorActorProtocol extends MySerializable
 
     object TerminateDatabaseConnectorActor
         extends DatabaseConnectorActorProtocol

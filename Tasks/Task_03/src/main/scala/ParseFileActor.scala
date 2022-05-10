@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 import scala.util.Success
 
 object ParseFileActor {
-    trait ParseFileActorProtocol
+    trait ParseFileActorProtocol extends MySerializable
 
     object TerminateParseFileActor extends ParseFileActorProtocol
     case class TerminateParseFileActorWithNextActorRef(

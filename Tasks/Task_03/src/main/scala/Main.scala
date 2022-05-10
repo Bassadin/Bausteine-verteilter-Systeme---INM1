@@ -1,6 +1,8 @@
 import akka.actor.typed.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
 
+trait MySerializable;
+
 object Main extends App {
     // GitHub-Repo: https://github.com/Bassadin/Bausteine-verteilter-Systeme-INM1
 

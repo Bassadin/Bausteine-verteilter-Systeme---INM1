@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 import scala.util.Success
 
 object ConvertDataActor {
-    trait ConvertDataActorProtocol
+    trait ConvertDataActorProtocol extends MySerializable
 
     object TerminateConvertDataActor extends ConvertDataActorProtocol
     case class TerminateConvertDataActorWithNextActorRef(

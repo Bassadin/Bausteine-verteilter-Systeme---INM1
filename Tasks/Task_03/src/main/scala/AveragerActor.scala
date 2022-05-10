@@ -10,7 +10,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Success
 
 object AveragerActor {
-    trait AveragerActorProtocol
+    trait AveragerActorProtocol extends MySerializable
 
     object TerminateAveragerActor extends AveragerActorProtocol
     case class TerminateAveragerActorWithNextActorRef(
