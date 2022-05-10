@@ -1,9 +1,5 @@
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
-
-import java.lang.Thread
-import scala.collection.immutable.HashMap
 
 object Main extends App {
     // GitHub-Repo: https://github.com/Bassadin/Bausteine-verteilter-Systeme-INM1
@@ -42,6 +38,5 @@ object Main extends App {
     parseFileActorRef ! ParseFileActor.LoadDataFromFileAndGetParseActor(
         "./test_ticks.csv"
     )
-
 
 }

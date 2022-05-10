@@ -63,7 +63,7 @@ object ConvertDataActor {
 
     def apply(): Behavior[ConvertDataActorProtocol] = {
 
-        Behaviors.setup[ConvertDataActorProtocol] { context =>
+        Behaviors.setup { context =>
 
             context.log.info("--- Convert Data Actor UP ---")
 
