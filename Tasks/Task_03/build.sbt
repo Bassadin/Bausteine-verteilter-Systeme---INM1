@@ -6,10 +6,11 @@ name := "Task_03"
 // You can define other libraries as dependencies in your build like this:
 
 // https://mvnrepository.com/artifact/com.typesafe.akka/akka-actor-typed
-libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.6.18"
 
 val AkkaVersion = "2.6.19"
 libraryDependencies += "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion
 
 // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
 libraryDependencies += "org.slf4j" % "slf4j-api" % "2.0.0-alpha6"
