@@ -41,7 +41,7 @@ object ParseFileActor {
                   context.system.receptionist,
                   Receptionist.Find(ConvertDataActor.serviceKey)
                 ) { case Success(listing) =>
-                    val instances = listing.serviceInstances(
+                    val instances = listing.allServiceInstances(
                       ConvertDataActor.serviceKey
                     )
                     val convertDataActorReference = instances.iterator.next()
@@ -71,7 +71,7 @@ object ParseFileActor {
                   Find(ConvertDataActor.serviceKey)
                 ) { case Success(listing: Listing) =>
                     val instances =
-                        listing.serviceInstances(
+                        listing.allServiceInstances(
                           ConvertDataActor.serviceKey
                         )
                     val convertDataActorRef = instances.head
