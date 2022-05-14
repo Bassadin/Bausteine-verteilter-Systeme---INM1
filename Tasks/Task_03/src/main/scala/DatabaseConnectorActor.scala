@@ -16,29 +16,31 @@ object DatabaseConnectorActor {
     val serviceKey: ServiceKey[DatabaseConnectorActorProtocol] =
         ServiceKey[DatabaseConnectorActorProtocol]("databaseConnectorActor")
 
+    // Connection data
     val connection: Connection = DriverManager.getConnection(
       "jdbc:h2:./src/main/resources/test;mode=MySQL",
       "sa",
       ""
     )
 
-    val preparedSqlStatement: PreparedStatement =
+    val preparedTickInsertStatement: PreparedStatement =
         connection.prepareStatement(
           "INSERT INTO TICKS (SYMBOL, TICKDATETIME, PRICE) VALUES (?, ?, ?)"
         )
 
-    val clearStatement: Statement = connection.createStatement()
-    clearStatement.executeUpdate("DELETE FROM TICKS")
+    val dbClearStatement: Statement = connection.createStatement()
+    dbClearStatement.executeUpdate("DELETE FROM TICKS")
 
     def storeInDB(
         newTick: Tick,
         context: ActorContext[DatabaseConnectorActorProtocol]
     ): Unit = {
-        val sqlStatement = preparedSqlStatement
-        sqlStatement.setString(1, newTick.symbol)
-        sqlStatement.setString(2, newTick.timestamp.toString)
-        sqlStatement.setLong(3, newTick.price)
-        sqlStatement.executeUpdate()
+        val sqlStatementToExecute = preparedTickInsertStatement
+
+        sqlStatementToExecute.setString(1, newTick.symbol)
+        sqlStatementToExecute.setString(2, newTick.timestamp.toString)
+        sqlStatementToExecute.setLong(3, newTick.price)
+        sqlStatementToExecute.executeUpdate()
 
         context.log.info(s"Added Tick '$newTick' to DB successfully.")
     }
@@ -47,6 +49,7 @@ object DatabaseConnectorActor {
 
         Behaviors.setup { context =>
             Behaviors.receiveMessage {
+                // Store new averager Tick data in the DB
                 case AveragerTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
@@ -59,11 +62,10 @@ object DatabaseConnectorActor {
                     context.log.info(
                       "End signal received, terminating DB actor and closing DB connection"
                     )
+
                     connection.close()
                     Behaviors.stopped;
-
             }
         }
     }
-
 }

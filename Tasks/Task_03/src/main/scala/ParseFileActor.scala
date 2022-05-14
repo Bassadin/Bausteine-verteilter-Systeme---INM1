@@ -84,6 +84,10 @@ object ParseFileActor {
                 }
                 Behaviors.same;
             case SendFileDataToConvertActor(convertDataActorRef, newData) =>
+                context.log.info(
+                  "Got convert actor ref, continuing.."
+                )
+
                 // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
                 // Drop first 4 lines since they're just headers
                 for (line <- Source.fromFile(newData).getLines.drop(4)) {

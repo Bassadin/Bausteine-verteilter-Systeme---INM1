@@ -1,3 +1,4 @@
+import Utils.createConfigWithPort
 import akka.actor.typed.ActorSystem
 import akka.cluster.typed.Cluster
 import com.typesafe.config.{Config, ConfigFactory}
@@ -7,15 +8,7 @@ trait MySerializable;
 object Main extends App {
     // GitHub-Repo: https://github.com/Bassadin/Bausteine-verteilter-Systeme-INM1
 
-    def createConfigWithPort(port: Int, role: String): Config = {
-        ConfigFactory
-            .parseString(s"""
-                akka.remote.artery.canonical.port=$port
-                akka.cluster.roles=[$role]
-                """)
-            .withFallback(ConfigFactory.load())
-    }
-
+    // Create the actor systems with unique ports
     println("Creating Actor Systems")
 
     ActorSystem(
@@ -47,9 +40,4 @@ object Main extends App {
     )
 
     println("Finished creating Actor Systems")
-
-//    parseFileActorRef ! ParseFileActor.LoadDataFromFileAndGetParseActor(
-//        "./test_ticks.csv"
-//    )
-
 }
