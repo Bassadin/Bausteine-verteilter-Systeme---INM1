@@ -12,7 +12,7 @@ object Main extends App {
     println("Creating Actor Systems")
 
     ActorSystem(
-      ClusterListener(),
+      ClusterEventsListener(),
       "hfu",
       createConfigWithPort(25251, "listener")
     )

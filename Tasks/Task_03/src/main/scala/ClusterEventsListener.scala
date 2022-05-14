@@ -10,10 +10,9 @@ import akka.util.Timeout
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
-object ClusterListener {
+object ClusterEventsListener {
 
     sealed trait Event
-    // internal adapted cluster events only
     private final case class ReachabilityChange(
         reachabilityEvent: ReachabilityEvent
     ) extends Event
@@ -21,10 +20,8 @@ object ClusterListener {
 
     implicit val timeout: Timeout = 3.seconds
 
-    def apply(): Behavior[Event] = Behaviors.setup { context =>
+    def apply(): Behavior[Any] = Behaviors.setup { context =>
         val cluster = Cluster(context.system)
-
-        implicit val timeout: Timeout = 3.seconds
 
         val memberEventAdapter: ActorRef[MemberEvent] =
             context.messageAdapter(MemberChange)
@@ -60,26 +57,30 @@ object ClusterListener {
                         case MemberUp(member) =>
                             context.log.info("Member is Up: {}", member.address)
 
-                            val members = cluster.state.members.filter(
+                            val clusterMembers = cluster.state.members.filter(
                               _.status == MemberStatus.Up
                             )
 
-                            if (members.size >= 4) {
+                            if (clusterMembers.size >= 5) {
                                 context.ask(
                                   context.system.receptionist,
                                   Find(ParseFileActor.serviceKey)
                                 ) { case Success(listing: Listing) =>
-                                    val instances =
-                                        listing.allServiceInstances(
-                                          ParseFileActor.serviceKey
-                                        )
-                                    val parseFileActorRef = instances.head
+                                    val parseFileActorRef =
+                                        listing
+                                            .allServiceInstances(
+                                              ParseFileActor.serviceKey
+                                            )
+                                            .head
+
+                                    context.log.info(
+                                      "Sending first message with file name"
+                                    )
 
                                     parseFileActorRef ! ParseFileActor
                                         .LoadDataFromFileAndGetParseActor(
                                           "./test_ticks.csv"
                                         )
-
 
                                 }
                             }
