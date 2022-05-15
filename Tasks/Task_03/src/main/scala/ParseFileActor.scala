@@ -72,7 +72,7 @@ object ParseFileActor {
 
                 // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
                 // Drop first 4 lines since they're just headers
-                val bufferedReader = Source.fromFile(csvPath);
+                val bufferedReader = Source.fromFile(csvPath)
                 val batches = bufferedReader.getLines
                     .drop(4)
                     .grouped(100)
@@ -84,7 +84,7 @@ object ParseFileActor {
                   bufferedReader
                 )
             case AskForWork(converterRef) =>
-                context.self ! AskForWork(converterRef);
+                context.self ! AskForWork(converterRef)
                 Behaviors.same
 
         }
@@ -101,8 +101,8 @@ object ParseFileActor {
                   context.self
                 )
             } else {
-                converterRef ! Terminate();
-                bufferedReader.close;
+                converterRef ! Terminate()
+                bufferedReader.close
             }
             Behaviors.same
         }
