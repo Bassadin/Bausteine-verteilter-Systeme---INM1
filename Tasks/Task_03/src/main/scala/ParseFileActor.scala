@@ -1,4 +1,6 @@
-import ConvertDataActor.ConvertDataActorProtocol
+import ConvertDataActor.{ConvertDataActorProtocol, ListingResponse}
+import DatabaseConnectorActor.{DatabaseConnectorActorProtocol, ListingResponse}
+import akka.actor.typed.SupervisorStrategy.Stop
 
 import scala.io.Source
 import akka.actor.typed.{ActorRef, Behavior}
@@ -13,92 +15,70 @@ import scala.util.Success
 object ParseFileActor {
     trait ParseFileActorProtocol extends MySerializable
 
-    object TerminateParseFileActor extends ParseFileActorProtocol
-    case class TerminateParseFileActorWithNextActorRef(
-        parseFileActorRef: ActorRef[ConvertDataActorProtocol]
-    ) extends ParseFileActorProtocol
-
     case class LoadDataFromFileAndGetParseActor(newData: String)
         extends ParseFileActorProtocol
-    case class SendFileDataToConvertActor(
-        convertDataActorRef: ActorRef[ConvertDataActorProtocol],
-        newData: String
-    ) extends ParseFileActorProtocol
+    case class SendFileDataToConvertActor(csvPath: String)
+        extends ParseFileActorProtocol
+
+    case class ListingResponse(listing: Receptionist.Listing)
+        extends ParseFileActorProtocol
 
     val serviceKey: ServiceKey[ParseFileActorProtocol] =
         ServiceKey[ParseFileActorProtocol]("fileParser")
 
-    def apply(): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
+    def apply(csvPath: String): Behavior[ParseFileActorProtocol] =
+        Behaviors.setup { context =>
+            context.log.info("--- Parse File Actor UP ---")
 
-        context.log.info("--- Parse File Actor UP ---")
+            context.system.receptionist ! Receptionist.register(
+              this.serviceKey,
+              context.self
+            );
 
-        implicit val timeout: Timeout =
-            Timeout.apply(100, TimeUnit.MILLISECONDS)
+            context.log.info("Trying to send SendFileDataToConvertActor")
+            context.self ! SendFileDataToConvertActor(csvPath);
 
-        Behaviors.receiveMessagePartial {
-            case TerminateParseFileActor =>
-                context.ask(
-                  context.system.receptionist,
-                  Receptionist.Find(ConvertDataActor.serviceKey)
-                ) { case Success(listing) =>
-                    val instances = listing.allServiceInstances(
-                      ConvertDataActor.serviceKey
-                    )
-                    val convertDataActorReference = instances.iterator.next()
-                    TerminateParseFileActorWithNextActorRef(
-                      convertDataActorReference
-                    )
-                }
-                Behaviors.same;
-
-            case TerminateParseFileActorWithNextActorRef(
-                  convertDataActorReference
-                ) =>
-                context.system.receptionist ! Receptionist.Deregister(
-                  this.serviceKey,
-                  context.self
-                )
-                convertDataActorReference ! ConvertDataActor.TerminateConvertDataActor
-                Behaviors.stopped
-
-            case LoadDataFromFileAndGetParseActor(newData) =>
-                context.log.info(
-                  "Valid file path: " + newData + ". Now parsing..."
+            val subscriptionAdapter =
+                context.messageAdapter[Receptionist.Listing](
+                  ListingResponse.apply
                 )
 
-                context.ask(
-                  context.system.receptionist,
-                  Find(ConvertDataActor.serviceKey)
-                ) { case Success(listing: Listing) =>
-                    val instances =
-                        listing.allServiceInstances(
-                          ConvertDataActor.serviceKey
-                        )
-                    val convertDataActorRef = instances.head
+            context.system.receptionist ! Receptionist.Subscribe(
+              ConvertDataActor.serviceKey,
+              subscriptionAdapter
+            )
 
-                    SendFileDataToConvertActor(
-                      convertDataActorRef,
-                      newData
-                    )
+            Behaviors.receiveMessage {
 
-                }
-                Behaviors.same;
-            case SendFileDataToConvertActor(convertDataActorRef, newData) =>
-                context.log.info(
-                  "Got convert actor ref, continuing.."
-                )
+                case ListingResponse(
+                      ConvertDataActor.serviceKey.Listing(listings)
+                    ) =>
+                    listings.foreach(convertDataActorRef => {
+                        context.log
+                            .info("Applying with {}", convertDataActorRef)
+                        handleConverterRef(convertDataActorRef)
+                    })
+                    Behaviors.same
+                case SendFileDataToConvertActor(csvPath) =>
+                    context.self ! SendFileDataToConvertActor(csvPath);
+                    Behaviors.same;
+            }
+        }
 
-                // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
-                // Drop first 4 lines since they're just headers
-                for (line <- Source.fromFile(newData).getLines.drop(4)) {
-                    convertDataActorRef ! ConvertDataActor
-                        .SendDataToConvertAndFindDBActor(line)
-                }
+    private def handleConverterRef(
+        converterActorRef: ActorRef[ConvertDataActor.ConvertDataActorProtocol]
+    ): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
+        Behaviors.receiveMessage { case SendFileDataToConvertActor(csvPath) =>
+            context.log.info("Received message SendFileDataToConvertActor")
 
-                convertDataActorRef ! ConvertDataActor.TerminateConvertDataActor
-                context.self ! this.TerminateParseFileActor
+            // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
+            // Drop first 4 lines since they're just headers
+            for (line <- Source.fromFile(csvPath).getLines.drop(4)) {
+                converterActorRef ! ConvertDataActor
+                    .SendDataToConvertAndFindDBActor(line)
+            }
 
-                Behaviors.same;
+            Behaviors.same;
         }
     }
 }

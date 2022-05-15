@@ -1,3 +1,6 @@
+import AveragerActor.{ListingResponse, SendAveragerTickDataToDBActor}
+import DatabaseConnectorActor.DatabaseConnectorActorProtocol
+import ParseFileActor.{ParseFileActorProtocol, SendFileDataToConvertActor}
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
@@ -7,22 +10,20 @@ import akka.util.Timeout
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
+import scala.io.Source
 import scala.util.Success
 
 object ConvertDataActor {
     trait ConvertDataActorProtocol extends MySerializable
 
-    object TerminateConvertDataActor extends ConvertDataActorProtocol
-    case class TerminateConvertDataActorWithNextActorRef(
-        averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
-    ) extends ConvertDataActorProtocol
-
     case class SendDataToConvertAndFindDBActor(newData: String)
         extends ConvertDataActorProtocol
     case class SendFileDataToAveragerActor(
-        dbActorRef: ActorRef[AveragerActor.AveragerActorProtocol],
         newData: String
     ) extends ConvertDataActorProtocol
+
+    case class ListingResponse(listing: Receptionist.Listing)
+        extends ConvertDataActorProtocol
 
     val serviceKey: ServiceKey[ConvertDataActorProtocol] =
         ServiceKey[ConvertDataActorProtocol]("convertDataActor")
@@ -61,69 +62,64 @@ object ConvertDataActor {
         newParsedTick
     }
 
-    def apply(): Behavior[ConvertDataActorProtocol] = {
+    def apply(
+        averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol] = null
+    ): Behavior[ConvertDataActorProtocol] = {
 
         Behaviors.setup { context =>
-
+            context.system.receptionist ! Receptionist.register(
+              this.serviceKey,
+              context.self
+            );
             context.log.info("--- Convert Data Actor UP ---")
 
-            implicit val timeout: Timeout =
-                Timeout.apply(100, TimeUnit.MILLISECONDS)
+            val subscriptionAdapter =
+                context.messageAdapter[Receptionist.Listing](
+                  ListingResponse.apply
+                )
+
+            context.system.receptionist ! Receptionist.Subscribe(
+              AveragerActor.serviceKey,
+              subscriptionAdapter
+            )
+
+            context.system.receptionist ! Receptionist.Subscribe(
+              ParseFileActor.serviceKey,
+              subscriptionAdapter
+            )
 
             Behaviors.receiveMessage {
-                case TerminateConvertDataActor =>
-                    context.ask(
-                      context.system.receptionist,
-                      Receptionist.Find(AveragerActor.serviceKey)
-                    ) { case Success(listing) =>
-                        val instances = listing.serviceInstances(
-                          AveragerActor.serviceKey
-                        )
-                        val averagerActorReference = instances.head
-                        TerminateConvertDataActorWithNextActorRef(
-                          averagerActorReference
-                        )
-                    }
-                    Behaviors.same;
-
-                case TerminateConvertDataActorWithNextActorRef(
-                      averagerActorReference
+                case ListingResponse(
+                      AveragerActor.serviceKey.Listing(listings)
                     ) =>
-                    context.system.receptionist ! Receptionist.Deregister(
-                      this.serviceKey,
-                      context.self
+                    listings.foreach(averagerActorRef =>
+                        handleAveragerRef(averagerActorRef)
                     )
-                    averagerActorReference ! AveragerActor.TerminateAveragerActor
-                    Behaviors.stopped
-
-                case SendDataToConvertAndFindDBActor(newData) =>
-                    context.ask(
-                      context.system.receptionist,
-                      Find(AveragerActor.serviceKey)
-                    ) { case Success(listing: Listing) =>
-                        val instances =
-                            listing.serviceInstances(AveragerActor.serviceKey)
-                        val averagerActorRef =
-                            instances.head
-
-                        SendFileDataToAveragerActor(averagerActorRef, newData);
-                    }
-
                     Behaviors.same
-                case SendFileDataToAveragerActor(averagerActorRef, newData) =>
-                    val newTick: Tick = parseStringToTick(newData)
-
-                    // Use NaN instead of null
-                    if (newTick != null) {
-                        averagerActorRef ! AveragerActor
-                            .GetDBActorRefAndSendAveragerTickData(
-                              newTick
-                            )
-                    }
-
+                case ListingResponse(
+                      ParseFileActor.serviceKey.Listing(listings)
+                    ) =>
+                    listings.foreach(parserActorRef => parserActorRef)
                     Behaviors.same
             }
         }
     }
 
+    private def handleAveragerRef(
+        averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
+    ): Behavior[ConvertDataActorProtocol] = Behaviors.setup { context =>
+        Behaviors.receiveMessage { case SendFileDataToAveragerActor(newData) =>
+            val newTick: Tick = parseStringToTick(newData)
+
+            // Use NaN instead of null
+            if (newTick != null) {
+                averagerActorRef ! AveragerActor
+                    .GetDBActorRefAndSendAveragerTickData(
+                      newTick
+                    )
+            }
+
+            Behaviors.same
+        }
+    }
 }

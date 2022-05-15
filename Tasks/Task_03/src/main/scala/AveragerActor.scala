@@ -1,3 +1,13 @@
+import ConvertDataActor.{
+    ConvertDataActorProtocol,
+    SendFileDataToAveragerActor,
+    parseStringToTick
+}
+import DatabaseConnectorActor.{
+    AveragerTickData,
+    DatabaseConnectorActorProtocol,
+    ListingResponse
+}
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
@@ -12,21 +22,15 @@ import scala.util.Success
 object AveragerActor {
     trait AveragerActorProtocol extends MySerializable
 
-    object TerminateAveragerActor extends AveragerActorProtocol
-    case class TerminateAveragerActorWithNextActorRef(
-        databaseConnectorActorReference: ActorRef[
-          DatabaseConnectorActor.DatabaseConnectorActorProtocol
-        ]
-    ) extends AveragerActorProtocol
-
     case class GetDBActorRefAndSendAveragerTickData(newTick: Tick)
         extends AveragerActorProtocol
     case class SendAveragerTickDataToDBActor(
-        dbActorRef: ActorRef[
-          DatabaseConnectorActor.DatabaseConnectorActorProtocol
-        ],
         newTick: Tick
     ) extends AveragerActorProtocol
+
+    case class ListingResponse(listing: Receptionist.Listing)
+        extends AveragerActorProtocol
+
     val serviceKey: ServiceKey[AveragerActorProtocol] =
         ServiceKey[AveragerActorProtocol]("averagerDataActor")
 
@@ -101,89 +105,72 @@ object AveragerActor {
     }
 
     def apply(): Behavior[AveragerActorProtocol] = {
-        apply(HashMap[String, Seq[Tick]]())
+        apply(HashMap[String, Seq[Tick]](), null)
     }
 
     def apply(
         symbolToTicksMap: Map[String, Seq[Tick]]
     ): Behavior[AveragerActorProtocol] = {
+        apply(symbolToTicksMap, null)
+    }
+
+    def apply(
+        symbolToTicksMap: Map[String, Seq[Tick]],
+        databaseActorRef: ActorRef[
+          DatabaseConnectorActor.DatabaseConnectorActorProtocol
+        ] = null
+    ): Behavior[AveragerActorProtocol] = {
         Behaviors
             .setup[AveragerActorProtocol] { context =>
+                context.system.receptionist ! Receptionist.register(
+                  this.serviceKey,
+                  context.self
+                );
+
                 context.log.info("--- Averager Actor UP ---")
 
-                implicit val timeout: Timeout = 3.seconds
+                val subscriptionAdapter =
+                    context.messageAdapter[Receptionist.Listing](
+                      ListingResponse.apply
+                    )
+
+                context.system.receptionist ! Receptionist.Subscribe(
+                  DatabaseConnectorActor.serviceKey,
+                  subscriptionAdapter
+                )
+
+//                context.system.receptionist ! Receptionist.Subscribe(
+//                  ConvertDataActor.serviceKey,
+//                  subscriptionAdapter
+//                )
 
                 Behaviors.receiveMessage {
-                    case TerminateAveragerActor =>
-                        context.ask(
-                          context.system.receptionist,
-                          Receptionist.Find(DatabaseConnectorActor.serviceKey)
-                        ) { case Success(listing) =>
-                            val instances = listing.serviceInstances(
-                              DatabaseConnectorActor.serviceKey
-                            )
-                            val databaseConnectorActorReference =
-                                instances.head
 
-                            TerminateAveragerActorWithNextActorRef(
-                              databaseConnectorActorReference
-                            )
-                        }
-                        Behaviors.same;
-
-                    case TerminateAveragerActorWithNextActorRef(
-                          databaseConnectorActorReference
+//                    case ListingResponse(
+//                          ConvertDataActor.serviceKey.Listing(listings)
+//                        ) =>
+//                        Behaviors.same
+                    case ListingResponse(
+                          DatabaseConnectorActor.serviceKey.Listing(listings)
                         ) =>
-                        // https://stackoverflow.com/a/8610807/3526350
-                        symbolToTicksMap.foreach { case (symbol, ticks) =>
-                            if (ticks.nonEmpty) {
-                                // Clean up remaining tick average data
-                                databaseConnectorActorReference ! DatabaseConnectorActor
-                                    .AveragerTickData(
-                                      Tick(
-                                        symbol,
-                                        ticks.head.timestamp,
-                                        averagePriceOfTicks(ticks)
-                                      )
-                                    )
-                            }
-                        }
-
-                        context.system.receptionist ! Receptionist.Deregister(
-                          this.serviceKey,
-                          context.self
-                        )
-                        databaseConnectorActorReference ! DatabaseConnectorActor.TerminateDatabaseConnectorActor
-                        Behaviors.stopped
-
-                    case GetDBActorRefAndSendAveragerTickData(newTick) =>
-                        context.ask(
-                          context.system.receptionist,
-                          Find(DatabaseConnectorActor.serviceKey)
-                        ) { case Success(listing: Listing) =>
-                            val instances =
-                                listing.serviceInstances(
-                                  DatabaseConnectorActor.serviceKey
-                                )
-                            val parseFileActorRef = instances.head
-
-                            SendAveragerTickDataToDBActor(
-                              parseFileActorRef,
-                              newTick
-                            )
-                        }
-
-                        Behaviors.same;
-                    case SendAveragerTickDataToDBActor(
-                          dbActorRef,
-                          newTick
-                        ) =>
-                        handleNewTickDataForAveraging(
-                          symbolToTicksMap,
-                          newTick,
-                          dbActorRef
-                        );
+                        listings.foreach(dbActorRef => handleDBRef(dbActorRef))
+                        Behaviors.same
                 }
             }
     }
+
+    private def handleDBRef(
+        dbActorRef: ActorRef[
+          DatabaseConnectorActor.DatabaseConnectorActorProtocol
+        ]
+    ): Behavior[AveragerActorProtocol] = Behaviors.setup { context =>
+        Behaviors.receiveMessage {
+            case SendAveragerTickDataToDBActor(
+                  newTick
+                ) =>
+                dbActorRef ! AveragerTickData(newTick)
+                Behaviors.same
+        }
+    }
+
 }

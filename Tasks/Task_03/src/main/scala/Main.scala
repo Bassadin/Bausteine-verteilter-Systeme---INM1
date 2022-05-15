@@ -1,3 +1,4 @@
+import ParseFileActor.SendFileDataToConvertActor
 import Utils.createConfigWithPortAndRole
 import akka.actor.typed.ActorSystem
 import akka.cluster.typed.Cluster
@@ -11,14 +12,14 @@ object Main extends App {
     // Create the actor systems with unique ports
     println("Creating Actor Systems")
 
-    ActorSystem(
-      ClusterEventsListener(),
-      "hfu",
-      createConfigWithPortAndRole(25251, "listener")
-    )
+//    ActorSystem(
+//      ClusterEventsListener(),
+//      "hfu",
+//      createConfigWithPortAndRole(25251, "listener")
+//    )
 
     val parseFileActorSystem = ActorSystem(
-      ParseFileActor(),
+      ParseFileActor("./test_ticks.csv"),
       "hfu",
       createConfigWithPortAndRole(25252, "parse")
     )
@@ -26,18 +27,20 @@ object Main extends App {
     ActorSystem(
       ConvertDataActor(),
       "hfu",
-      createConfigWithPortAndRole(47113, "convert")
+      createConfigWithPortAndRole(25251, "convert")
     )
     ActorSystem(
       AveragerActor(),
       "hfu",
-      createConfigWithPortAndRole(47112, "averager")
+      createConfigWithPortAndRole(0, "averager")
     )
     ActorSystem(
       DatabaseConnectorActor(),
       "hfu",
-      createConfigWithPortAndRole(47111, "database")
+      createConfigWithPortAndRole(0, "database")
     )
+
+//    parseFileActorSystem ! SendFileDataToConvertActor("./test_ticks.csv");
 
     println("Finished creating Actor Systems")
 }

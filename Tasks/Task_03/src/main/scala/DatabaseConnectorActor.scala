@@ -1,4 +1,4 @@
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 
@@ -7,10 +7,10 @@ import java.sql.{Connection, DriverManager, PreparedStatement, Statement}
 object DatabaseConnectorActor {
     trait DatabaseConnectorActorProtocol extends MySerializable
 
-    object TerminateDatabaseConnectorActor
+    case class AveragerTickData(tick: Tick)
         extends DatabaseConnectorActorProtocol
 
-    case class AveragerTickData(tick: Tick)
+    case class ListingResponse(listing: Receptionist.Listing)
         extends DatabaseConnectorActorProtocol
 
     val serviceKey: ServiceKey[DatabaseConnectorActorProtocol] =
@@ -48,23 +48,31 @@ object DatabaseConnectorActor {
     def apply(): Behavior[DatabaseConnectorActorProtocol] = {
 
         Behaviors.setup { context =>
+            context.system.receptionist ! Receptionist.register(
+              this.serviceKey,
+              context.self
+            );
+
+            val subscriptionAdapter =
+                context.messageAdapter[Receptionist.Listing](
+                  ListingResponse.apply
+                )
+
+            context.system.receptionist ! Receptionist.Subscribe(
+              AveragerActor.serviceKey,
+              subscriptionAdapter
+            )
+
             Behaviors.receiveMessage {
                 // Store new averager Tick data in the DB
                 case AveragerTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
-                case TerminateDatabaseConnectorActor =>
-                    context.system.receptionist ! Receptionist.Deregister(
-                      this.serviceKey,
-                      context.self
-                    )
-
-                    context.log.info(
-                      "End signal received, terminating DB actor and closing DB connection"
-                    )
-
-                    connection.close()
-                    Behaviors.stopped;
+                case ListingResponse(
+                      AveragerActor.serviceKey.Listing(listings)
+                    ) =>
+                    listings.foreach(averagerRef => averagerRef)
+                    Behaviors.same
             }
         }
     }

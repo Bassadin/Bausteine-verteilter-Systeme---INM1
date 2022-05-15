@@ -1,3 +1,4 @@
+import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.Behaviors
@@ -66,12 +67,15 @@ object ClusterEventsListener {
                                   context.system.receptionist,
                                   Find(ParseFileActor.serviceKey)
                                 ) { case Success(listing: Listing) =>
-                                    val parseFileActorRef =
+                                    val parseFileActorServiceInstances =
                                         listing
                                             .allServiceInstances(
                                               ParseFileActor.serviceKey
                                             )
-                                            .head
+
+//                                    if (parseFileActorServiceInstances.nonEmpty) {
+                                    val parseFileActorRef =
+                                        parseFileActorServiceInstances.head
 
                                     context.log.info(
                                       "Sending first message with file name"
@@ -81,6 +85,12 @@ object ClusterEventsListener {
                                         .LoadDataFromFileAndGetParseActor(
                                           "./test_ticks.csv"
                                         )
+//                                    } else {
+//                                        context.log.warn(
+//                                            "No parse file actor found yet."
+//                                        )
+//                                        Behaviors.same
+//                                    }
 
                                 }
                             }
