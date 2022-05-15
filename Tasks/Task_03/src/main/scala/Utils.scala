@@ -1,6 +1,8 @@
+import akka.actor.typed.receptionist.Receptionist
 import com.typesafe.config.{Config, ConfigFactory}
 
 object Utils {
+
     def createConfigWithPortAndRole(port: Int, role: String): Config = {
         ConfigFactory
             .parseString(s"""

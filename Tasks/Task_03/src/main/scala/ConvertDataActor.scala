@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 object ConvertDataActor {
-    trait ConvertDataActorProtocol extends MySerializable
+    trait ConvertDataActorProtocol extends ActorProtocolSerializable
 
     case class HandleFileLineString(
         newData: String
@@ -74,10 +74,10 @@ object ConvertDataActor {
               subscriptionAdapter
             )
 
-            context.system.receptionist ! Receptionist.Subscribe(
-              ParseFileActor.serviceKey,
-              subscriptionAdapter
-            )
+//            context.system.receptionist ! Receptionist.Subscribe(
+//              ParseFileActor.serviceKey,
+//              subscriptionAdapter
+//            )
 
             Behaviors.receiveMessage {
                 case ListingResponse(
@@ -96,11 +96,12 @@ object ConvertDataActor {
                 case HandleFileLineString(newData) =>
                     context.self ! HandleFileLineString(newData);
                     Behaviors.same;
-                case ListingResponse(
-                      ParseFileActor.serviceKey.Listing(listings)
-                    ) =>
-                    listings.foreach(parserActorRef => parserActorRef)
-                    Behaviors.same
+
+//                case ListingResponse(
+//                      ParseFileActor.serviceKey.Listing(listings)
+//                    ) =>
+////                    listings.foreach(parserActorRef => parserActorRef)
+//                    Behaviors.same
             }
         }
     }

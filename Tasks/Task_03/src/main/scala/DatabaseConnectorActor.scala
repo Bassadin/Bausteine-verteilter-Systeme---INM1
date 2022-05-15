@@ -1,13 +1,13 @@
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 
 import java.sql.{Connection, DriverManager, PreparedStatement, Statement}
 
 object DatabaseConnectorActor {
-    trait DatabaseConnectorActorProtocol extends MySerializable
+    trait DatabaseConnectorActorProtocol extends ActorProtocolSerializable
 
-    case class AveragerTickData(tick: Tick)
+    case class HandleAveragedTickData(tick: Tick)
         extends DatabaseConnectorActorProtocol
 
     case class ListingResponse(listing: Receptionist.Listing)
@@ -28,13 +28,11 @@ object DatabaseConnectorActor {
           "INSERT INTO TICKS (SYMBOL, TICKDATETIME, PRICE) VALUES (?, ?, ?)"
         )
 
-    val dbClearStatement: Statement = connection.createStatement()
-    dbClearStatement.executeUpdate("DELETE FROM TICKS")
-
     def storeInDB(
         newTick: Tick,
         context: ActorContext[DatabaseConnectorActorProtocol]
     ): Unit = {
+        context.log.info("NEW AVERAGED TICK DATA ARRIVED")
         val sqlStatementToExecute = preparedTickInsertStatement
 
         sqlStatementToExecute.setString(1, newTick.symbol)
@@ -48,10 +46,14 @@ object DatabaseConnectorActor {
     def apply(): Behavior[DatabaseConnectorActorProtocol] = {
 
         Behaviors.setup { context =>
+            context.log.info("--- DELETING DATABASE ---")
+            val dbClearStatement: Statement = connection.createStatement()
+            dbClearStatement.executeUpdate("DELETE FROM TICKS")
+
             context.system.receptionist ! Receptionist.register(
               this.serviceKey,
               context.self
-            );
+            )
 
             val subscriptionAdapter =
                 context.messageAdapter[Receptionist.Listing](
@@ -65,7 +67,8 @@ object DatabaseConnectorActor {
 
             Behaviors.receiveMessage {
                 // Store new averager Tick data in the DB
-                case AveragerTickData(newTickToStore) =>
+                case HandleAveragedTickData(newTickToStore) =>
+                    context.log.info("DB ACTOR - HandleAveragedTickData: {}", newTickToStore)
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
                 case ListingResponse(
