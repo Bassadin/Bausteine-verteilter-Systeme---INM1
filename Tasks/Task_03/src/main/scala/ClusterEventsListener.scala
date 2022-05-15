@@ -81,10 +81,10 @@ object ClusterEventsListener {
                                       "Sending first message with file name"
                                     )
 
-                                    parseFileActorRef ! ParseFileActor
-                                        .LoadDataFromFileAndGetParseActor(
-                                          "./test_ticks.csv"
-                                        )
+//                                    parseFileActorRef ! ParseFileActor
+//                                        .LoadDataFromFileAndGetParseActor(
+//                                          "./test_ticks.csv"
+//                                        )
 //                                    } else {
 //                                        context.log.warn(
 //                                            "No parse file actor found yet."

@@ -1,24 +1,15 @@
-import AveragerActor.{ListingResponse, SendAveragerTickDataToDBActor}
-import DatabaseConnectorActor.DatabaseConnectorActorProtocol
-import ParseFileActor.{ParseFileActorProtocol, SendFileDataToConvertActor}
-import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
+import ParseFileActor.ParseFile
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.util.Timeout
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
-import scala.io.Source
-import scala.util.Success
 
 object ConvertDataActor {
     trait ConvertDataActorProtocol extends MySerializable
 
-    case class SendDataToConvertAndFindDBActor(newData: String)
-        extends ConvertDataActorProtocol
-    case class SendFileDataToAveragerActor(
+    case class HandleFileLineString(
         newData: String
     ) extends ConvertDataActorProtocol
 
@@ -70,7 +61,7 @@ object ConvertDataActor {
             context.system.receptionist ! Receptionist.register(
               this.serviceKey,
               context.self
-            );
+            )
             context.log.info("--- Convert Data Actor UP ---")
 
             val subscriptionAdapter =
@@ -92,10 +83,19 @@ object ConvertDataActor {
                 case ListingResponse(
                       AveragerActor.serviceKey.Listing(listings)
                     ) =>
-                    listings.foreach(averagerActorRef =>
-                        handleAveragerRef(averagerActorRef)
-                    )
-                    Behaviors.same
+                    listings.headOption match {
+                        case Some(averagerRef) =>
+                            context.log.info(
+                              "Using averager ref {}",
+                              averagerRef
+                            )
+                            handleAveragerRef(averagerRef)
+                        case None =>
+                            Behaviors.same
+                    }
+                case HandleFileLineString(newData) =>
+                    context.self ! HandleFileLineString(newData);
+                    Behaviors.same;
                 case ListingResponse(
                       ParseFileActor.serviceKey.Listing(listings)
                     ) =>
@@ -108,15 +108,12 @@ object ConvertDataActor {
     private def handleAveragerRef(
         averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
     ): Behavior[ConvertDataActorProtocol] = Behaviors.setup { context =>
-        Behaviors.receiveMessage { case SendFileDataToAveragerActor(newData) =>
+        Behaviors.receiveMessage { case HandleFileLineString(newData) =>
             val newTick: Tick = parseStringToTick(newData)
 
             // Use NaN instead of null
             if (newTick != null) {
-                averagerActorRef ! AveragerActor
-                    .GetDBActorRefAndSendAveragerTickData(
-                      newTick
-                    )
+                averagerActorRef ! AveragerActor.HandleNewTickData(newTick)
             }
 
             Behaviors.same

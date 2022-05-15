@@ -14,11 +14,7 @@ import scala.util.Success
 
 object ParseFileActor {
     trait ParseFileActorProtocol extends MySerializable
-
-    case class LoadDataFromFileAndGetParseActor(newData: String)
-        extends ParseFileActorProtocol
-    case class SendFileDataToConvertActor(csvPath: String)
-        extends ParseFileActorProtocol
+    case class ParseFile(csvPath: String) extends ParseFileActorProtocol
 
     case class ListingResponse(listing: Receptionist.Listing)
         extends ParseFileActorProtocol
@@ -36,7 +32,7 @@ object ParseFileActor {
             );
 
             context.log.info("Trying to send SendFileDataToConvertActor")
-            context.self ! SendFileDataToConvertActor(csvPath);
+            context.self ! ParseFile(csvPath);
 
             val subscriptionAdapter =
                 context.messageAdapter[Receptionist.Listing](
@@ -53,14 +49,18 @@ object ParseFileActor {
                 case ListingResponse(
                       ConvertDataActor.serviceKey.Listing(listings)
                     ) =>
-                    listings.foreach(convertDataActorRef => {
-                        context.log
-                            .info("Applying with {}", convertDataActorRef)
-                        handleConverterRef(convertDataActorRef)
-                    })
-                    Behaviors.same
-                case SendFileDataToConvertActor(csvPath) =>
-                    context.self ! SendFileDataToConvertActor(csvPath);
+                    listings.headOption match {
+                        case Some(converterRef) =>
+                            context.log.info(
+                              "Using converter ref {}",
+                              converterRef
+                            )
+                            handleConverterRef(converterRef)
+                        case None =>
+                            Behaviors.same
+                    };
+                case ParseFile(csvPath) =>
+                    context.self ! ParseFile(csvPath);
                     Behaviors.same;
             }
         }
@@ -68,14 +68,14 @@ object ParseFileActor {
     private def handleConverterRef(
         converterActorRef: ActorRef[ConvertDataActor.ConvertDataActorProtocol]
     ): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
-        Behaviors.receiveMessage { case SendFileDataToConvertActor(csvPath) =>
+        Behaviors.receiveMessage { case ParseFile(csvPath) =>
             context.log.info("Received message SendFileDataToConvertActor")
 
             // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
             // Drop first 4 lines since they're just headers
             for (line <- Source.fromFile(csvPath).getLines.drop(4)) {
                 converterActorRef ! ConvertDataActor
-                    .SendDataToConvertAndFindDBActor(line)
+                    .HandleFileLineString(line)
             }
 
             Behaviors.same;

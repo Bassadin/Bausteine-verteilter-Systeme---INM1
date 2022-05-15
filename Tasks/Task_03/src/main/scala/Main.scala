@@ -1,4 +1,4 @@
-import ParseFileActor.SendFileDataToConvertActor
+import ParseFileActor.ParseFile
 import Utils.createConfigWithPortAndRole
 import akka.actor.typed.ActorSystem
 import akka.cluster.typed.Cluster

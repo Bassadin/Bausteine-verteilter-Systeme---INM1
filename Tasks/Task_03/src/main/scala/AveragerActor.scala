@@ -1,30 +1,16 @@
-import ConvertDataActor.{
-    ConvertDataActorProtocol,
-    SendFileDataToAveragerActor,
-    parseStringToTick
-}
-import DatabaseConnectorActor.{
-    AveragerTickData,
-    DatabaseConnectorActorProtocol,
-    ListingResponse
-}
-import akka.actor.typed.receptionist.Receptionist.{Find, Listing}
+import ConvertDataActor.handleAveragerRef
+import DatabaseConnectorActor.AveragerTickData
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.util.Timeout
 
 import java.time.Duration
 import scala.collection.immutable.HashMap
-import scala.concurrent.duration.DurationInt
-import scala.util.Success
 
 object AveragerActor {
     trait AveragerActorProtocol extends MySerializable
 
-    case class GetDBActorRefAndSendAveragerTickData(newTick: Tick)
-        extends AveragerActorProtocol
-    case class SendAveragerTickDataToDBActor(
+    case class HandleNewTickData(
         newTick: Tick
     ) extends AveragerActorProtocol
 
@@ -105,20 +91,11 @@ object AveragerActor {
     }
 
     def apply(): Behavior[AveragerActorProtocol] = {
-        apply(HashMap[String, Seq[Tick]](), null)
+        apply(HashMap[String, Seq[Tick]]())
     }
 
     def apply(
         symbolToTicksMap: Map[String, Seq[Tick]]
-    ): Behavior[AveragerActorProtocol] = {
-        apply(symbolToTicksMap, null)
-    }
-
-    def apply(
-        symbolToTicksMap: Map[String, Seq[Tick]],
-        databaseActorRef: ActorRef[
-          DatabaseConnectorActor.DatabaseConnectorActorProtocol
-        ] = null
     ): Behavior[AveragerActorProtocol] = {
         Behaviors
             .setup[AveragerActorProtocol] { context =>
@@ -153,8 +130,19 @@ object AveragerActor {
                     case ListingResponse(
                           DatabaseConnectorActor.serviceKey.Listing(listings)
                         ) =>
-                        listings.foreach(dbActorRef => handleDBRef(dbActorRef))
-                        Behaviors.same
+                        listings.headOption match {
+                            case Some(dbActorRef) =>
+                                context.log.info(
+                                  "Using dbActorRef {}",
+                                  dbActorRef
+                                )
+                                handleDBRef(dbActorRef)
+                            case None =>
+                                Behaviors.same
+                        }
+                    case HandleNewTickData(newTick) =>
+                        context.self ! HandleNewTickData(newTick);
+                        Behaviors.same;
                 }
             }
     }
@@ -165,7 +153,7 @@ object AveragerActor {
         ]
     ): Behavior[AveragerActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessage {
-            case SendAveragerTickDataToDBActor(
+            case HandleNewTickData(
                   newTick
                 ) =>
                 dbActorRef ! AveragerTickData(newTick)
