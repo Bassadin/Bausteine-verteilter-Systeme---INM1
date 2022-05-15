@@ -68,7 +68,7 @@ object DatabaseConnectorActor {
             Behaviors.receiveMessage {
                 // Store new averager Tick data in the DB
                 case HandleAveragedTickData(newTickToStore) =>
-                    context.log.info("DB ACTOR - HandleAveragedTickData: {}", newTickToStore)
+                    context.log.info("averaged data: {}", newTickToStore)
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
                 case ListingResponse(

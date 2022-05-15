@@ -34,7 +34,6 @@ object AveragerActor {
           DatabaseConnectorActor.DatabaseConnectorActorProtocol
         ]
     ): Behavior[AveragerActorProtocol] = {
-
         if (symbolToTicksMap.isEmpty) {
             return this.handleDBRef(dbActorRef, HashMap[String, Seq[Tick]]())
         }
@@ -75,6 +74,7 @@ object AveragerActor {
                   averagePriceOfTicks(tickSeqForSymbol)
                 )
 
+                println("Sending averaged tick data to db actor")
                 dbActorRef ! DatabaseConnectorActor.HandleAveragedTickData(
                   averagedTickDataForExistingSeq
                 )
@@ -140,7 +140,7 @@ object AveragerActor {
         symbolToTicksMap: Map[String, Seq[Tick]]
     ): Behavior[AveragerActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial { case HandleNewTickData(newTick) =>
-
+            context.log.info("HandleNewTickData current line: {}", newTick)
             this.handleNewTickDataForAveraging(
               symbolToTicksMap,
               newTick,

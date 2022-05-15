@@ -1,8 +1,9 @@
+import ConvertDataActor.{Terminate, WorkReady}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 
 object ParseFileActor {
     trait ParseFileActorProtocol extends ActorProtocolSerializable
@@ -10,6 +11,10 @@ object ParseFileActor {
 
     case class ListingResponse(listing: Receptionist.Listing)
         extends ParseFileActorProtocol
+
+    case class AskForWork(
+        converterRef: ActorRef[ConvertDataActor.ConvertDataActorProtocol]
+    ) extends ParseFileActorProtocol
 
     val serviceKey: ServiceKey[ParseFileActorProtocol] =
         ServiceKey[ParseFileActorProtocol]("fileParser")
@@ -61,16 +66,45 @@ object ParseFileActor {
     private def handleConverterRef(
         converterActorRef: ActorRef[ConvertDataActor.ConvertDataActorProtocol]
     ): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
-        Behaviors.receiveMessagePartial { case ParseFile(csvPath) =>
-            context.log.info("Received message SendFileDataToConvertActor")
+        Behaviors.receiveMessagePartial {
+            case ParseFile(csvPath) =>
+                context.log.info("Received message SendFileDataToConvertActor")
 
-            // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
-            // Drop first 4 lines since they're just headers
-            for (line <- Source.fromFile(csvPath).getLines.drop(4)) {
-                converterActorRef ! ConvertDataActor.HandleFileLineString(line)
+                // https://alvinalexander.com/scala/how-to-open-read-text-files-in-scala-cookbook-examples/
+                // Drop first 4 lines since they're just headers
+                val bufferedReader = Source.fromFile(csvPath);
+                val batches = bufferedReader.getLines
+                    .drop(4)
+                    .grouped(100)
+
+                context.log.info("Initialize work pulling behavior")
+                converterActorRef ! ConvertDataActor.WorkReady(context.self)
+                this.workPullingBehavior(
+                  batches,
+                  bufferedReader
+                )
+            case AskForWork(converterRef) =>
+                context.self ! AskForWork(converterRef);
+                Behaviors.same
+
+        }
+    }
+
+    private def workPullingBehavior(
+        groupedIterator: Iterator[String]#GroupedIterator[String] = null,
+        bufferedReader: BufferedSource = null
+    ): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
+        Behaviors.receiveMessagePartial { case AskForWork(converterRef) =>
+            if (groupedIterator.hasNext) {
+                converterRef ! ConvertDataActor.HandleFileBatchedLines(
+                  groupedIterator.next,
+                  context.self
+                )
+            } else {
+                converterRef ! Terminate();
+                bufferedReader.close;
             }
-
-            Behaviors.same;
+            Behaviors.same
         }
     }
 }

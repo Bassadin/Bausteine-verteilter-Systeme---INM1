@@ -1,4 +1,4 @@
-import ParseFileActor.ParseFile
+import ParseFileActor.{AskForWork, ParseFile}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
@@ -9,12 +9,19 @@ import java.time.format.DateTimeFormatter
 object ConvertDataActor {
     trait ConvertDataActorProtocol extends ActorProtocolSerializable
 
-    case class HandleFileLineString(
-        newData: String
+    case class HandleFileBatchedLines(
+        newData: Seq[String],
+        parserRef: ActorRef[ParseFileActor.ParseFileActorProtocol]
+    ) extends ConvertDataActorProtocol
+
+    case class WorkReady(
+        parserRef: ActorRef[ParseFileActor.ParseFileActorProtocol]
     ) extends ConvertDataActorProtocol
 
     case class ListingResponse(listing: Receptionist.Listing)
         extends ConvertDataActorProtocol
+
+    case class Terminate() extends ConvertDataActorProtocol
 
     val serviceKey: ServiceKey[ConvertDataActorProtocol] =
         ServiceKey[ConvertDataActorProtocol]("convertDataActor")
@@ -74,12 +81,7 @@ object ConvertDataActor {
               subscriptionAdapter
             )
 
-//            context.system.receptionist ! Receptionist.Subscribe(
-//              ParseFileActor.serviceKey,
-//              subscriptionAdapter
-//            )
-
-            Behaviors.receiveMessage {
+            Behaviors.receiveMessagePartial {
                 case ListingResponse(
                       AveragerActor.serviceKey.Listing(listings)
                     ) =>
@@ -93,15 +95,14 @@ object ConvertDataActor {
                         case None =>
                             Behaviors.same
                     }
-                case HandleFileLineString(newData) =>
-                    context.self ! HandleFileLineString(newData);
+                case HandleFileBatchedLines(newData, parserRef) =>
+                    context.self ! HandleFileBatchedLines(newData, parserRef);
                     Behaviors.same;
-
-//                case ListingResponse(
-//                      ParseFileActor.serviceKey.Listing(listings)
-//                    ) =>
-////                    listings.foreach(parserActorRef => parserActorRef)
-//                    Behaviors.same
+                case WorkReady(parserRef) =>
+                    context.self ! WorkReady(parserRef);
+                    Behaviors.same
+                case Terminate() =>
+                    Behaviors.stopped
             }
         }
     }
@@ -109,15 +110,23 @@ object ConvertDataActor {
     private def handleAveragerRef(
         averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
     ): Behavior[ConvertDataActorProtocol] = Behaviors.setup { context =>
-        Behaviors.receiveMessage { case HandleFileLineString(newData) =>
-            val newTick: Tick = parseStringToTick(newData)
+        Behaviors.receiveMessagePartial {
+            case HandleFileBatchedLines(newDataLines: Seq[String], parserRef) =>
+                newDataLines.foreach(eachLine => {
 
-            // Use NaN instead of null
-            if (newTick != null) {
-                averagerActorRef ! AveragerActor.HandleNewTickData(newTick)
-            }
-
-            Behaviors.same
+                    val newTick: Tick = parseStringToTick(eachLine)
+                    if (newTick != null) {
+                        averagerActorRef ! AveragerActor.HandleNewTickData(
+                          newTick
+                        )
+                    }
+                })
+                parserRef ! AskForWork(context.self);
+                Behaviors.same
+            case WorkReady(parserRef) =>
+                context.log.info("Work ready ask for work")
+                parserRef ! AskForWork(context.self);
+                Behaviors.same
         }
     }
 }
