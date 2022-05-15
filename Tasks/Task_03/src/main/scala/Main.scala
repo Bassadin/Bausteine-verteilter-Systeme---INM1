@@ -1,4 +1,4 @@
-import Utils.createConfigWithPort
+import Utils.createConfigWithPortAndRole
 import akka.actor.typed.ActorSystem
 import akka.cluster.typed.Cluster
 import com.typesafe.config.{Config, ConfigFactory}
@@ -14,29 +14,29 @@ object Main extends App {
     ActorSystem(
       ClusterEventsListener(),
       "hfu",
-      createConfigWithPort(25251, "listener")
+      createConfigWithPortAndRole(25251, "listener")
     )
 
     val parseFileActorSystem = ActorSystem(
       ParseFileActor(),
       "hfu",
-      createConfigWithPort(25252, "parse")
+      createConfigWithPortAndRole(25252, "parse")
     )
 
     ActorSystem(
       ConvertDataActor(),
       "hfu",
-      createConfigWithPort(47113, "convert")
+      createConfigWithPortAndRole(47113, "convert")
     )
     ActorSystem(
       AveragerActor(),
       "hfu",
-      createConfigWithPort(47112, "averager")
+      createConfigWithPortAndRole(47112, "averager")
     )
     ActorSystem(
       DatabaseConnectorActor(),
       "hfu",
-      createConfigWithPort(47111, "database")
+      createConfigWithPortAndRole(47111, "database")
     )
 
     println("Finished creating Actor Systems")
