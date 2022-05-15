@@ -1,4 +1,4 @@
-import ParseFileActor.{AskForWork, ParseFile}
+import ParseFileActor.AskForWork
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
@@ -9,18 +9,10 @@ import java.time.format.DateTimeFormatter
 object ConvertDataActor {
     trait ConvertDataActorProtocol extends ActorProtocolSerializable
 
-    case class HandleFileBatchedLines(
-        newData: Seq[String],
-        parserRef: ActorRef[ParseFileActor.ParseFileActorProtocol]
-    ) extends ConvertDataActorProtocol
-
-    case class WorkReady(
-        parserRef: ActorRef[ParseFileActor.ParseFileActorProtocol]
-    ) extends ConvertDataActorProtocol
-
-    case class ListingResponse(listing: Receptionist.Listing)
+    case class HandleFileBatchedLines(newData: Seq[String], parserRef: ActorRef[ParseFileActor.ParseFileActorProtocol])
         extends ConvertDataActorProtocol
-
+    case class WorkReady(parserRef: ActorRef[ParseFileActor.ParseFileActorProtocol]) extends ConvertDataActorProtocol
+    case class ListingResponse(listing: Receptionist.Listing) extends ConvertDataActorProtocol
     case class Terminate() extends ConvertDataActorProtocol
 
     val serviceKey: ServiceKey[ConvertDataActorProtocol] =
@@ -48,13 +40,11 @@ object ConvertDataActor {
             return null
         }
 
-        val newTickDateTime: LocalDateTime =
-            LocalDateTime.parse(dateString + " " + timeString, formatter)
+        val newTickDateTime: LocalDateTime = LocalDateTime.parse(dateString + " " + timeString, formatter)
 
         // Price
         // Double and long conversion to get correct values. Maybe improve later?
         val newTickPrice: Long = splitData(21).toDouble.toLong
-
         val newParsedTick = Tick(newTickID, newTickDateTime, newTickPrice)
 
         newParsedTick
@@ -65,21 +55,11 @@ object ConvertDataActor {
     ): Behavior[ConvertDataActorProtocol] = {
 
         Behaviors.setup { context =>
-            context.system.receptionist ! Receptionist.register(
-              this.serviceKey,
-              context.self
-            )
             context.log.info("--- Convert Data Actor UP ---")
 
-            val subscriptionAdapter =
-                context.messageAdapter[Receptionist.Listing](
-                  ListingResponse.apply
-                )
-
-            context.system.receptionist ! Receptionist.Subscribe(
-              AveragerActor.serviceKey,
-              subscriptionAdapter
-            )
+            context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
+            val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
+            context.system.receptionist ! Receptionist.Subscribe(AveragerActor.serviceKey, subscriptionAdapter)
 
             Behaviors.receiveMessagePartial {
                 case ListingResponse(
@@ -96,10 +76,10 @@ object ConvertDataActor {
                             Behaviors.same
                     }
                 case HandleFileBatchedLines(newData, parserRef) =>
-                    context.self ! HandleFileBatchedLines(newData, parserRef);
+                    context.self ! HandleFileBatchedLines(newData, parserRef)
                     Behaviors.same;
                 case WorkReady(parserRef) =>
-                    context.self ! WorkReady(parserRef);
+                    context.self ! WorkReady(parserRef)
                     Behaviors.same
             }
         }
@@ -113,20 +93,18 @@ object ConvertDataActor {
                 newDataLines.foreach(eachLine => {
                     val newTick: Tick = parseStringToTick(eachLine)
                     if (newTick != null) {
-                        averagerActorRef ! AveragerActor.HandleNewTickData(
-                          newTick
-                        )
+                        averagerActorRef ! AveragerActor.HandleNewTickData(newTick)
                     }
                 })
-                parserRef ! AskForWork(context.self);
+                parserRef ! AskForWork(context.self)
                 Behaviors.same
             case WorkReady(parserRef) =>
                 context.log.info("Work ready ask for work")
-                parserRef ! AskForWork(context.self);
+                parserRef ! AskForWork(context.self)
                 Behaviors.same
             case this.Terminate() =>
                 context.log.info("Terminating Convert Data Actor")
-                averagerActorRef ! AveragerActor.Terminate();
+                averagerActorRef ! AveragerActor.Terminate()
                 Behaviors.stopped
         }
     }

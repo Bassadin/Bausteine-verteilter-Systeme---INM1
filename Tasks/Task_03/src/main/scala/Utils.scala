@@ -1,4 +1,3 @@
-import akka.actor.typed.receptionist.Receptionist
 import com.typesafe.config.{Config, ConfigFactory}
 
 object Utils {

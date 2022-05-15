@@ -8,17 +8,11 @@ import scala.collection.immutable.HashMap
 object AveragerActor {
     trait AveragerActorProtocol extends ActorProtocolSerializable
 
-    case class HandleNewTickData(
-        newTick: Tick
-    ) extends AveragerActorProtocol
-
-    case class ListingResponse(listing: Receptionist.Listing)
-        extends AveragerActorProtocol
-
+    case class HandleNewTickData(newTick: Tick) extends AveragerActorProtocol
+    case class ListingResponse(listing: Receptionist.Listing) extends AveragerActorProtocol
     case class Terminate() extends AveragerActorProtocol
 
-    val serviceKey: ServiceKey[AveragerActorProtocol] =
-        ServiceKey[AveragerActorProtocol]("averagerDataActor")
+    val serviceKey: ServiceKey[AveragerActorProtocol] = ServiceKey[AveragerActorProtocol]("averagerDataActor")
 
     // Get average of a Tick Seq
     def averagePriceOfTicks(tickList: Seq[Tick]): Long = {
@@ -32,9 +26,7 @@ object AveragerActor {
     def handleNewTickDataForAveraging(
         symbolToTicksMap: Map[String, Seq[Tick]],
         newTick: Tick,
-        dbActorRef: ActorRef[
-          DatabaseConnectorActor.DatabaseConnectorActorProtocol
-        ]
+        dbActorRef: ActorRef[DatabaseConnectorActor.DatabaseConnectorActorProtocol]
     ): Behavior[AveragerActorProtocol] = {
         if (symbolToTicksMap.isEmpty) {
             handleDBRef(dbActorRef, HashMap[String, Seq[Tick]]())
@@ -42,30 +34,21 @@ object AveragerActor {
 
         // https://alvinalexander.com/scala/how-to-add-update-remove-elements-immutable-maps-scala/
         if (!symbolToTicksMap.contains(newTick.symbol)) {
-            val mapWithNewEmptySequence =
-                symbolToTicksMap + (newTick.symbol -> Seq[Tick]())
+            val mapWithNewEmptySequence = symbolToTicksMap + (newTick.symbol -> Seq[Tick]())
             handleDBRef(dbActorRef, mapWithNewEmptySequence)
         } else {
 
-            val tickSeqForSymbol: Seq[Tick] =
-                symbolToTicksMap(newTick.symbol)
+            val tickSeqForSymbol: Seq[Tick] = symbolToTicksMap(newTick.symbol)
 
             /*
             If time difference between all entries for a single symbol and the new
             tick are within 5 mins, add the new tick to the existing seq.
             Otherwise, send to db actor and initialize new seq
              */
-            if (
-              tickSeqForSymbol.forall(tick =>
-                  Duration
-                      .between(tick.timestamp, newTick.timestamp)
-                      .toMinutes <= 5
-              )
-            ) {
+            if (tickSeqForSymbol.forall(tick => Duration.between(tick.timestamp, newTick.timestamp).toMinutes <= 5)) {
                 // Add to existing seq
                 val seqWithNewValue: Seq[Tick] = tickSeqForSymbol :+ newTick
-                val mapWithNewSeqIncludingNewValue =
-                    symbolToTicksMap + (newTick.symbol -> seqWithNewValue)
+                val mapWithNewSeqIncludingNewValue = symbolToTicksMap + (newTick.symbol -> seqWithNewValue)
                 handleDBRef(dbActorRef, mapWithNewSeqIncludingNewValue)
             } else {
                 // Replace existing seq
@@ -75,13 +58,9 @@ object AveragerActor {
                   averagePriceOfTicks(tickSeqForSymbol)
                 )
 
-                dbActorRef ! DatabaseConnectorActor.HandleAveragedTickData(
-                  averagedTickDataForExistingSeq
-                )
+                dbActorRef ! DatabaseConnectorActor.HandleAveragedTickData(averagedTickDataForExistingSeq)
 
-                val mapWithNewEmptySeq =
-                    symbolToTicksMap +
-                        (newTick.symbol -> (Seq[Tick]() :+ newTick))
+                val mapWithNewEmptySeq = symbolToTicksMap + (newTick.symbol -> (Seq[Tick]() :+ newTick))
 
                 handleDBRef(dbActorRef, mapWithNewEmptySeq)
             }
@@ -91,17 +70,10 @@ object AveragerActor {
     def apply(): Behavior[AveragerActorProtocol] = {
         Behaviors
             .setup[AveragerActorProtocol] { context =>
-                context.system.receptionist ! Receptionist.register(
-                  this.serviceKey,
-                  context.self
-                )
-
                 context.log.info("--- Averager Actor UP ---")
 
-                val subscriptionAdapter =
-                    context.messageAdapter[Receptionist.Listing](
-                      ListingResponse.apply
-                    )
+                context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
+                val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
 
                 context.system.receptionist ! Receptionist.Subscribe(
                   DatabaseConnectorActor.serviceKey,
@@ -110,19 +82,11 @@ object AveragerActor {
 
                 Behaviors.receiveMessagePartial {
 
-                    case ListingResponse(
-                          DatabaseConnectorActor.serviceKey.Listing(listings)
-                        ) =>
+                    case ListingResponse(DatabaseConnectorActor.serviceKey.Listing(listings)) =>
                         listings.headOption match {
                             case Some(dbActorRef) =>
-                                context.log.info(
-                                  "Using dbActorRef {}",
-                                  dbActorRef
-                                )
-                                handleDBRef(
-                                  dbActorRef,
-                                  Map[String, Seq[Tick]]()
-                                )
+                                context.log.info("Using dbActorRef {}", dbActorRef)
+                                handleDBRef(dbActorRef, Map[String, Seq[Tick]]())
                             case None =>
                                 Behaviors.same
                         }
@@ -134,9 +98,7 @@ object AveragerActor {
     }
 
     private def handleDBRef(
-        dbActorRef: ActorRef[
-          DatabaseConnectorActor.DatabaseConnectorActorProtocol
-        ],
+        dbActorRef: ActorRef[DatabaseConnectorActor.DatabaseConnectorActorProtocol],
         symbolToTicksMap: Map[String, Seq[Tick]]
     ): Behavior[AveragerActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial {
@@ -148,7 +110,7 @@ object AveragerActor {
                 )
             case this.Terminate() =>
                 context.log.info("Terminating Averager Actor")
-                dbActorRef ! DatabaseConnectorActor.Terminate();
+                dbActorRef ! DatabaseConnectorActor.Terminate()
                 Behaviors.stopped
         }
     }

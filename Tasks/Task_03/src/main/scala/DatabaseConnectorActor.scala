@@ -7,23 +7,15 @@ import java.sql.{Connection, DriverManager, PreparedStatement, Statement}
 object DatabaseConnectorActor {
     trait DatabaseConnectorActorProtocol extends ActorProtocolSerializable
 
-    case class HandleAveragedTickData(tick: Tick)
-        extends DatabaseConnectorActorProtocol
-
-    case class ListingResponse(listing: Receptionist.Listing)
-        extends DatabaseConnectorActorProtocol
-
+    case class HandleAveragedTickData(tick: Tick) extends DatabaseConnectorActorProtocol
+    case class ListingResponse(listing: Receptionist.Listing) extends DatabaseConnectorActorProtocol
     case class Terminate() extends DatabaseConnectorActorProtocol
 
     val serviceKey: ServiceKey[DatabaseConnectorActorProtocol] =
         ServiceKey[DatabaseConnectorActorProtocol]("databaseConnectorActor")
 
     // Connection data
-    val connection: Connection = DriverManager.getConnection(
-      "jdbc:h2:./src/main/resources/test;mode=MySQL",
-      "sa",
-      ""
-    )
+    val connection: Connection = DriverManager.getConnection("jdbc:h2:./src/main/resources/test;mode=MySQL", "sa", "")
 
     val preparedTickInsertStatement: PreparedStatement =
         connection.prepareStatement(
@@ -51,29 +43,16 @@ object DatabaseConnectorActor {
             val dbClearStatement: Statement = connection.createStatement()
             dbClearStatement.executeUpdate("DELETE FROM TICKS")
 
-            context.system.receptionist ! Receptionist.register(
-              this.serviceKey,
-              context.self
-            )
-
-            val subscriptionAdapter =
-                context.messageAdapter[Receptionist.Listing](
-                  ListingResponse.apply
-                )
-
-            context.system.receptionist ! Receptionist.Subscribe(
-              AveragerActor.serviceKey,
-              subscriptionAdapter
-            )
+            context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
+            val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
+            context.system.receptionist ! Receptionist.Subscribe(AveragerActor.serviceKey, subscriptionAdapter)
 
             Behaviors.receiveMessage {
                 // Store new averager Tick data in the DB
                 case HandleAveragedTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
-                case ListingResponse(
-                      AveragerActor.serviceKey.Listing(listings)
-                    ) =>
+                case ListingResponse(AveragerActor.serviceKey.Listing(listings)) =>
                     listings.foreach(averagerRef => averagerRef)
                     Behaviors.same
                 case this.Terminate() =>
