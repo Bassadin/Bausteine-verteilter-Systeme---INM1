@@ -100,11 +100,13 @@ object ParseFileActor {
                   groupedIterator.next,
                   context.self
                 )
+                Behaviors.same
             } else {
+                context.log.info("Terminating Parse File Actor")
                 converterRef ! Terminate()
                 bufferedReader.close
+                Behaviors.stopped
             }
-            Behaviors.same
         }
     }
 }

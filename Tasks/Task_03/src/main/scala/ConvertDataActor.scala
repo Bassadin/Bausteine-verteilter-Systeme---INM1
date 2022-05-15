@@ -101,8 +101,6 @@ object ConvertDataActor {
                 case WorkReady(parserRef) =>
                     context.self ! WorkReady(parserRef);
                     Behaviors.same
-                case Terminate() =>
-                    Behaviors.stopped
             }
         }
     }
@@ -113,7 +111,6 @@ object ConvertDataActor {
         Behaviors.receiveMessagePartial {
             case HandleFileBatchedLines(newDataLines: Seq[String], parserRef) =>
                 newDataLines.foreach(eachLine => {
-
                     val newTick: Tick = parseStringToTick(eachLine)
                     if (newTick != null) {
                         averagerActorRef ! AveragerActor.HandleNewTickData(
@@ -127,6 +124,10 @@ object ConvertDataActor {
                 context.log.info("Work ready ask for work")
                 parserRef ! AskForWork(context.self);
                 Behaviors.same
+            case this.Terminate() =>
+                context.log.info("Terminating Convert Data Actor")
+                averagerActorRef ! AveragerActor.Terminate();
+                Behaviors.stopped
         }
     }
 }

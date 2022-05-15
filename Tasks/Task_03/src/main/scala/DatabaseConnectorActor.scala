@@ -34,7 +34,6 @@ object DatabaseConnectorActor {
         newTick: Tick,
         context: ActorContext[DatabaseConnectorActorProtocol]
     ): Unit = {
-        context.log.info("NEW AVERAGED TICK DATA ARRIVED")
         val sqlStatementToExecute = preparedTickInsertStatement
 
         sqlStatementToExecute.setString(1, newTick.symbol)
@@ -70,7 +69,6 @@ object DatabaseConnectorActor {
             Behaviors.receiveMessage {
                 // Store new averager Tick data in the DB
                 case HandleAveragedTickData(newTickToStore) =>
-                    context.log.info("averaged data: {}", newTickToStore)
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
                 case ListingResponse(
@@ -78,6 +76,10 @@ object DatabaseConnectorActor {
                     ) =>
                     listings.foreach(averagerRef => averagerRef)
                     Behaviors.same
+                case this.Terminate() =>
+                    context.log.info("Terminating DB Actor")
+                    connection.close()
+                    Behaviors.stopped
             }
         }
     }
