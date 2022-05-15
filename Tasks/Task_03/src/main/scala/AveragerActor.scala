@@ -15,6 +15,8 @@ object AveragerActor {
     case class ListingResponse(listing: Receptionist.Listing)
         extends AveragerActorProtocol
 
+    case class Terminate() extends AveragerActorProtocol
+
     val serviceKey: ServiceKey[AveragerActorProtocol] =
         ServiceKey[AveragerActorProtocol]("averagerDataActor")
 

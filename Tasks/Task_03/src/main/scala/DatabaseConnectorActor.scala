@@ -13,6 +13,8 @@ object DatabaseConnectorActor {
     case class ListingResponse(listing: Receptionist.Listing)
         extends DatabaseConnectorActorProtocol
 
+    case class Terminate() extends DatabaseConnectorActorProtocol
+
     val serviceKey: ServiceKey[DatabaseConnectorActorProtocol] =
         ServiceKey[DatabaseConnectorActorProtocol]("databaseConnectorActor")
 
