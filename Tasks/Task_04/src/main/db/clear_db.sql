@@ -1,0 +1,1 @@
+DELETE FROM TICKS where 1=1;
