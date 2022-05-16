@@ -64,6 +64,7 @@ object AveragerRouter {
         Behaviors.receiveMessagePartial { case this.Terminate() =>
             context.log.info("Terminating Averager Router and averager actors")
             dbActorRef ! DatabaseConnectorActor.Terminate()
+            context.log.info("AveragerRouter - Terminating averagers with router {}", broadcastRouter)
             broadcastRouter ! AveragerActor.Terminate()
             Behaviors.stopped
         }

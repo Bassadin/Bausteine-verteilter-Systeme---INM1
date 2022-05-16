@@ -61,9 +61,7 @@ object ConvertDataActor {
             context.system.receptionist ! Receptionist.Subscribe(AveragerRouter.serviceKey, subscriptionAdapter)
 
             Behaviors.receiveMessagePartial {
-                case ListingResponse(
-                      AveragerRouter.serviceKey.Listing(listings)
-                    ) =>
+                case ListingResponse(AveragerRouter.serviceKey.Listing(listings)) =>
                     listings.headOption match {
                         case Some(averagerRouterRef) =>
                             context.log.info(
@@ -89,7 +87,11 @@ object ConvertDataActor {
                 newDataLines.foreach(eachLine => {
                     val newTick: Tick = parseStringToTick(eachLine)
                     if (newTick != null) {
-                        context.log.info("ConvertDataActor - Sending newTick {} to averager router {}", newTick, averagerRouterRef)
+                        context.log.info(
+                          "ConvertDataActor - Sending newTick {} to averager router {}",
+                          newTick,
+                          averagerRouterRef
+                        )
                         averagerRouterRef ! AveragerRouter.HandleTickData(newTick)
                     }
                 })
@@ -101,6 +103,7 @@ object ConvertDataActor {
                 Behaviors.same
             case this.Terminate() =>
                 context.log.info("Terminating Convert Data Actor")
+                context.log.info("ConvertDataActor - trying to terminate averager router {}", averagerRouterRef)
                 averagerRouterRef ! AveragerRouter.Terminate()
                 Behaviors.stopped
         }
