@@ -15,6 +15,8 @@ object AveragerRouter {
 
     def apply(): Behavior[AveragerRouterProtocol] = {
         Behaviors.setup[AveragerRouterProtocol] { context =>
+            context.log.info("AveragerRouter - starting pool")
+            context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
             val pool = Routers.pool(poolSize = 10) {
                 // make sure the workers are restarted if they fail
                 Behaviors.supervise(AveragerActor()).onFailure[Exception](SupervisorStrategy.restart)
@@ -38,7 +40,7 @@ object AveragerRouter {
             )
 
             Behaviors.receiveMessagePartial {
-                case HandleTickData(newTick: Tick) =>
+                case HandleTickData(newTick) =>
                     context.log.info("AveragerRouter - Sending newTick {} to averagers", newTick)
                     poolRouter ! AveragerActor.HandleNewTickData(newTick)
                     Behaviors.same
@@ -50,6 +52,7 @@ object AveragerRouter {
                         case None =>
                             Behaviors.same
                     }
+                    Behaviors.same
             }
         }
     }

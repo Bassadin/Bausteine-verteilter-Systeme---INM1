@@ -15,7 +15,7 @@ object ConvertDataActor {
     case class ListingResponse(listing: Receptionist.Listing) extends ConvertDataActorProtocol
     case class Terminate() extends ConvertDataActorProtocol
 
-    val serviceKey = ServiceKey[ConvertDataActorProtocol]("convertDataActor")
+    val serviceKey: ServiceKey[ConvertDataActorProtocol] = ServiceKey[ConvertDataActorProtocol]("convertDataActor")
 
     val formatter: DateTimeFormatter =
         DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss.SSS")
