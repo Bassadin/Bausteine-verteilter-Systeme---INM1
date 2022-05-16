@@ -74,9 +74,6 @@ object ConvertDataActor {
                         case None =>
                             Behaviors.same
                     }
-                case HandleFileBatchedLines(newData, parserRef) =>
-                    context.self ! HandleFileBatchedLines(newData, parserRef)
-                    Behaviors.same;
                 case WorkReady(parserRef) =>
                     context.self ! WorkReady(parserRef)
                     Behaviors.same
