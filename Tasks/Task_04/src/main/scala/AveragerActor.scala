@@ -103,6 +103,7 @@ object AveragerActor {
     ): Behavior[AveragerActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial {
             case HandleNewTickData(newTick) =>
+                context.log.info("AveragerActor - Getting new Tick data: {}", newTick)
                 this.handleNewTickDataForAveraging(
                   symbolToTicksMap,
                   newTick,

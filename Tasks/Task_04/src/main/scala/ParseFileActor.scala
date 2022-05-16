@@ -76,6 +76,7 @@ object ParseFileActor {
     ): Behavior[ParseFileActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial { case AskForWork(converterRef) =>
             if (groupedIterator.hasNext) {
+                context.log.info("ParseFileActor - Sending new data to ConvertDataActor")
                 converterRef ! ConvertDataActor.HandleFileBatchedLines(groupedIterator.next, context.self)
                 Behaviors.same
             } else {
