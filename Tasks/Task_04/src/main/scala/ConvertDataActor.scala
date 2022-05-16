@@ -50,7 +50,7 @@ object ConvertDataActor {
     }
 
     def apply(
-        averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol] = null
+        averagerRouterRef: ActorRef[AveragerRouter.AveragerRouterProtocol] = null
     ): Behavior[ConvertDataActorProtocol] = {
 
         Behaviors.setup { context =>
@@ -58,19 +58,19 @@ object ConvertDataActor {
 
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
             val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
-            context.system.receptionist ! Receptionist.Subscribe(AveragerActor.serviceKey, subscriptionAdapter)
+            context.system.receptionist ! Receptionist.Subscribe(AveragerRouter.serviceKey, subscriptionAdapter)
 
             Behaviors.receiveMessagePartial {
                 case ListingResponse(
-                      AveragerActor.serviceKey.Listing(listings)
+                      AveragerRouter.serviceKey.Listing(listings)
                     ) =>
                     listings.headOption match {
-                        case Some(averagerRef) =>
+                        case Some(averagerRouterRef) =>
                             context.log.info(
-                              "Using averager ref {}",
-                              averagerRef
+                              "Using averager router ref {}",
+                              averagerRouterRef
                             )
-                            handleAveragerRef(averagerRef)
+                            handleAveragerRef(averagerRouterRef)
                         case None =>
                             Behaviors.same
                     }
@@ -82,14 +82,15 @@ object ConvertDataActor {
     }
 
     private def handleAveragerRef(
-        averagerActorRef: ActorRef[AveragerActor.AveragerActorProtocol]
+        averagerRouterRef: ActorRef[AveragerRouter.AveragerRouterProtocol]
     ): Behavior[ConvertDataActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial {
             case HandleFileBatchedLines(newDataLines: Seq[String], parserRef) =>
                 newDataLines.foreach(eachLine => {
                     val newTick: Tick = parseStringToTick(eachLine)
                     if (newTick != null) {
-                        averagerActorRef ! AveragerActor.HandleNewTickData(newTick)
+                        context.log.info("ConvertDataActor - Sending newTick {} to averager router {}", newTick, averagerRouterRef)
+                        averagerRouterRef ! AveragerRouter.HandleTickData(newTick)
                     }
                 })
                 parserRef ! AskForWork(context.self)
@@ -100,7 +101,7 @@ object ConvertDataActor {
                 Behaviors.same
             case this.Terminate() =>
                 context.log.info("Terminating Convert Data Actor")
-                averagerActorRef ! AveragerActor.Terminate()
+                averagerRouterRef ! AveragerRouter.Terminate()
                 Behaviors.stopped
         }
     }

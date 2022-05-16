@@ -6,9 +6,13 @@ import java.time.Duration
 import scala.collection.immutable.HashMap
 
 object AveragerActor {
-    trait AveragerActorProtocol extends ActorProtocolSerializable
+    trait AveragerActorProtocol extends ActorProtocolSerializable {
+        def symbolIdentifier: String = ""
+    };
 
-    case class HandleNewTickData(newTick: Tick) extends AveragerActorProtocol
+    case class HandleNewTickData(newTick: Tick) extends AveragerActorProtocol {
+        override def symbolIdentifier: String = newTick.symbol
+    };
     case class ListingResponse(listing: Receptionist.Listing) extends AveragerActorProtocol
     case class Terminate() extends AveragerActorProtocol
 
@@ -111,7 +115,6 @@ object AveragerActor {
                 )
             case this.Terminate() =>
                 context.log.info("Terminating Averager Actor")
-                dbActorRef ! DatabaseConnectorActor.Terminate()
                 Behaviors.stopped
         }
     }

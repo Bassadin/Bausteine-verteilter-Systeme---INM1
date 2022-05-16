@@ -9,7 +9,7 @@ object Main extends App {
 
     ActorSystem(ParseFileActor("./test_ticks.csv"), "hfu", createConfigWithPortAndRole(25252, "parse"))
     ActorSystem(ConvertDataActor(), "hfu", createConfigWithPortAndRole(25251, "convert"))
-    ActorSystem(AveragerActor(), "hfu", createConfigWithPortAndRole(0, "averager"))
+    ActorSystem(AveragerRouter(), "hfu", createConfigWithPortAndRole(0, "averagerRouter"))
     ActorSystem(DatabaseConnectorActor(), "hfu", createConfigWithPortAndRole(0, "database"))
 
     println("Finished creating Actor Systems")
