@@ -27,7 +27,7 @@ object AveragerRouter {
             )
 
             // Broadcast
-            val poolWithBroadcast = pool.withBroadcastPredicate(_.isInstanceOf[Terminate])
+            val poolWithBroadcast = pool.withBroadcastPredicate(_.isInstanceOf[AveragerActor.Terminate])
             val routerWithBroadcast = context.spawn(poolWithBroadcast, "AveragerRouter-Broadcast")
 
             // Subscription to db actor
