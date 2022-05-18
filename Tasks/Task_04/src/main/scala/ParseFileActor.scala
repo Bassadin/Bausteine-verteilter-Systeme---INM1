@@ -80,8 +80,8 @@ object ParseFileActor {
                 Behaviors.same
             } else {
                 context.log.info("Terminating Parse File Actor")
-                converterRef ! Terminate()
                 bufferedReader.close
+                converterRef ! Terminate()
                 Behaviors.stopped
             }
         }
