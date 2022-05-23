@@ -89,7 +89,6 @@ object AveragerActor {
                     case ListingResponse(DatabaseConnectorActor.serviceKey.Listing(listings)) =>
                         listings.headOption match {
                             case Some(dbActorRef) =>
-                                context.log.info("Using dbActorRef {}", dbActorRef)
                                 handleDBRef(dbActorRef, Map[String, Seq[Tick]]())
                             case None =>
                                 Behaviors.same
@@ -107,7 +106,7 @@ object AveragerActor {
     ): Behavior[AveragerActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial {
             case HandleNewTickData(newTick) =>
-                context.log.info("AveragerActor - Getting new Tick data: {}", newTick)
+//                context.log.info("AveragerActor - Getting new Tick data: {}", newTick)
                 this.handleNewTickDataForAveraging(
                   symbolToTicksMap,
                   newTick,

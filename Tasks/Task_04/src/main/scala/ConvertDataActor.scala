@@ -87,11 +87,6 @@ object ConvertDataActor {
                 newDataLines.foreach(eachLine => {
                     val newTick: Tick = parseStringToTick(eachLine)
                     if (newTick != null) {
-                        context.log.info(
-                          "ConvertDataActor - Sending newTick {} to averager router {}",
-                          newTick,
-                          averagerRouterRef
-                        )
                         averagerRouterRef ! AveragerRouter.HandleTickData(newTick)
                     }
                 })

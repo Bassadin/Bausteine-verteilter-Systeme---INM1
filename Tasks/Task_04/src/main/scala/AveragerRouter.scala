@@ -41,13 +41,12 @@ object AveragerRouter {
 
             Behaviors.receiveMessagePartial {
                 case HandleTickData(newTick) =>
-                    context.log.info("AveragerRouter - Sending newTick {} to averagers", newTick)
+//                    context.log.info("AveragerRouter - Sending newTick {} to averagers", newTick)
                     poolRouter ! AveragerActor.HandleNewTickData(newTick)
                     Behaviors.same
                 case ListingResponse(DatabaseConnectorActor.serviceKey.Listing(listings)) =>
                     listings.headOption match {
                         case Some(dbActorRef) =>
-                            context.log.info("Using dbActorRef {}", dbActorRef)
                             handleDBRef(dbActorRef, routerWithBroadcast)
                         case None =>
                             Behaviors.same
