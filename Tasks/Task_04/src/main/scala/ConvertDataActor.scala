@@ -68,7 +68,7 @@ object ConvertDataActor {
                               "Using averager router ref {}",
                               averagerRouterRef
                             )
-                            handleAveragerRef(averagerRouterRef)
+                            handleAveragerRouterRef(averagerRouterRef)
                         case None =>
                             Behaviors.same
                     }
@@ -79,7 +79,7 @@ object ConvertDataActor {
         }
     }
 
-    private def handleAveragerRef(
+    private def handleAveragerRouterRef(
         averagerRouterRef: ActorRef[AveragerRouter.AveragerRouterProtocol]
     ): Behavior[ConvertDataActorProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial {
