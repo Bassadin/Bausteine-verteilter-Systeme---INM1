@@ -42,36 +42,42 @@ object AveragerRouter {
             )
 
             Behaviors.receiveMessagePartial {
-                case HandleTickData(newTick) =>
-//                    context.log.info("AveragerRouter - Sending newTick {} to averagers", newTick)
-                    poolRouter ! AveragerActor.HandleNewTickData(newTick)
-                    Behaviors.same
                 case ListingResponse(DatabaseConnectorActor.serviceKey.Listing(listings)) =>
                     listings.headOption match {
                         case Some(dbActorRef) =>
-                            handleDBRef(dbActorRef, routerWithBroadcast)
+                            context.log.info(
+                              "Using db actor ref {} and broadcast router {}",
+                              dbActorRef,
+                              routerWithBroadcast
+                            )
+                            handleDBRef(dbActorRef, routerWithBroadcast, poolRouter)
                         case None =>
                             Behaviors.same
                     }
-                    Behaviors.same
             }
         }
     }
 
     private def handleDBRef(
         dbActorRef: ActorRef[DatabaseConnectorActor.DatabaseConnectorActorProtocol],
-        broadcastRouter: ActorRef[AveragerActor.AveragerActorProtocol]
+        broadcastRouter: ActorRef[AveragerActor.AveragerActorProtocol],
+        poolRouter: ActorRef[AveragerActor.AveragerActorProtocol]
     ): Behavior[AveragerRouterProtocol] = Behaviors.setup { context =>
-        Behaviors.receiveMessagePartial { case this.Terminate() =>
-            context.system.receptionist ! Receptionist.Deregister(
-              this.serviceKey,
-              context.self
-            )
-            context.log.info("AveragerRouter - Terminating averagers with router {}", broadcastRouter)
-            broadcastRouter ! AveragerActor.Terminate()
-            context.log.info("Terminating Averager Router and averager actors")
-            dbActorRef ! DatabaseConnectorActor.Terminate()
-            Behaviors.stopped
+        context.log.info("Handledbref setup call")
+        Behaviors.receiveMessagePartial {
+            case this.Terminate() =>
+                context.system.receptionist ! Receptionist.Deregister(
+                  this.serviceKey,
+                  context.self
+                )
+                context.log.info("AveragerRouter - Terminating averagers with router {}", broadcastRouter)
+                broadcastRouter ! AveragerActor.Terminate()
+                context.log.info("Terminating Averager Router and averager actors")
+                dbActorRef ! DatabaseConnectorActor.Terminate()
+                Behaviors.stopped
+            case HandleTickData(newTick) =>
+                poolRouter ! AveragerActor.HandleNewTickData(newTick)
+                Behaviors.same
         }
     }
 
