@@ -17,6 +17,8 @@ object AveragerRouter {
         Behaviors.setup[AveragerRouterProtocol] { context =>
             context.log.info("AveragerRouter - starting pool")
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
+
+            // Could probably also use group routers here but it's really convenient that the pool routers start their routees when they start
             val pool = Routers.pool(poolSize = 10) {
                 // make sure the workers are restarted if they fail
                 Behaviors.supervise(AveragerActor()).onFailure[Exception](SupervisorStrategy.restart)
@@ -28,7 +30,7 @@ object AveragerRouter {
 
             // Broadcast
             val poolWithBroadcast = pool.withBroadcastPredicate(_.isInstanceOf[AveragerActor.Terminate])
-            val routerWithBroadcast = context.spawn(poolWithBroadcast, "AveragerRouter-Broadcast")
+            val routerWithBroadcast = context.spawn(poolWithBroadcast, "AveragerRouterBroadcast")
 
             // Subscription to db actor
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
@@ -61,10 +63,14 @@ object AveragerRouter {
         broadcastRouter: ActorRef[AveragerActor.AveragerActorProtocol]
     ): Behavior[AveragerRouterProtocol] = Behaviors.setup { context =>
         Behaviors.receiveMessagePartial { case this.Terminate() =>
-            context.log.info("Terminating Averager Router and averager actors")
-            dbActorRef ! DatabaseConnectorActor.Terminate()
+            context.system.receptionist ! Receptionist.Deregister(
+              this.serviceKey,
+              context.self
+            )
             context.log.info("AveragerRouter - Terminating averagers with router {}", broadcastRouter)
             broadcastRouter ! AveragerActor.Terminate()
+            context.log.info("Terminating Averager Router and averager actors")
+            dbActorRef ! DatabaseConnectorActor.Terminate()
             Behaviors.stopped
         }
     }

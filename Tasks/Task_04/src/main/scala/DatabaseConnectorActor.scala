@@ -56,6 +56,10 @@ object DatabaseConnectorActor {
                     Behaviors.same
                 case this.Terminate() =>
                     context.log.info("Terminating DB Actor")
+                    context.system.receptionist ! Receptionist.Deregister(
+                      this.serviceKey,
+                      context.self
+                    )
                     connection.close()
                     Behaviors.stopped
             }
