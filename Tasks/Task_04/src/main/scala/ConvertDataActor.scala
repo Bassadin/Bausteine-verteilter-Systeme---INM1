@@ -64,10 +64,7 @@ object ConvertDataActor {
                 case ListingResponse(AveragerRouter.serviceKey.Listing(listings)) =>
                     listings.headOption match {
                         case Some(averagerRouterRef) =>
-                            context.log.info(
-                              "Using averager router ref {}",
-                              averagerRouterRef
-                            )
+                            context.log.info("Using averager router ref {}", averagerRouterRef)
                             handleAveragerRouterRef(averagerRouterRef)
                         case None =>
                             Behaviors.same
