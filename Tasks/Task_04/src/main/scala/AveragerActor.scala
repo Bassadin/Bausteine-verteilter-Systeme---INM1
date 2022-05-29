@@ -77,15 +77,14 @@ object AveragerActor {
                 context.log.info("--- Averager Actor UP ---")
 
                 context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
-                val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
 
+                val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
                 context.system.receptionist ! Receptionist.Subscribe(
                   DatabaseConnectorActor.serviceKey,
                   subscriptionAdapter
                 )
 
                 Behaviors.receiveMessagePartial {
-
                     case ListingResponse(DatabaseConnectorActor.serviceKey.Listing(listings)) =>
                         listings.headOption match {
                             case Some(dbActorRef) =>
@@ -107,15 +106,10 @@ object AveragerActor {
         Behaviors.receiveMessagePartial {
             case HandleNewTickData(newTick) =>
 //                context.log.info("AveragerActor - Getting new Tick data: {}", newTick)
-                this.handleNewTickDataForAveraging(
-                  symbolToTicksMap,
-                  newTick,
-                  dbActorRef
-                )
+                this.handleNewTickDataForAveraging(symbolToTicksMap, newTick, dbActorRef)
             case this.Terminate() =>
                 context.log.info("Terminating Averager Actor")
                 Behaviors.stopped
         }
     }
-
 }
