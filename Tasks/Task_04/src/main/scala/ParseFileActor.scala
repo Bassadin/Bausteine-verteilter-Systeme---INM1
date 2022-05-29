@@ -81,10 +81,6 @@ object ParseFileActor {
             } else {
                 context.log.info("Terminating Parse File Actor")
                 bufferedReader.close
-                context.system.receptionist ! Receptionist.Deregister(
-                  this.serviceKey,
-                  context.self
-                )
                 converterRef ! Terminate()
                 Behaviors.stopped
             }

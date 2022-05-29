@@ -68,7 +68,6 @@ object AveragerRouter {
 
         Behaviors.receiveMessagePartial {
             case this.Terminate() =>
-                context.system.receptionist ! Receptionist.Deregister(this.serviceKey, context.self)
                 context.log.info("Terminating averager actors")
                 terminateAveragersWithBroadcast(averagerListings)
                 dbActorRef ! DatabaseConnectorActor.Terminate()

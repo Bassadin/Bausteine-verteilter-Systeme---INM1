@@ -96,10 +96,6 @@ object ConvertDataActor {
             case this.Terminate() =>
                 context.log.info("Terminating Convert Data Actor")
                 context.log.info("ConvertDataActor - trying to terminate averager router {}", averagerRouterRef)
-                context.system.receptionist ! Receptionist.Deregister(
-                  this.serviceKey,
-                  context.self
-                )
                 averagerRouterRef ! AveragerRouter.Terminate()
                 Behaviors.stopped
         }
