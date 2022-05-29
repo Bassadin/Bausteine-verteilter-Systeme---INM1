@@ -43,7 +43,7 @@ object DatabaseConnectorActor {
             dbClearStatement.executeUpdate("DELETE FROM TICKS")
 
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
-            Behaviors.receiveMessage {
+            Behaviors.receiveMessagePartial {
                 // Store new averager Tick data in the DB
                 case HandleAveragedTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
