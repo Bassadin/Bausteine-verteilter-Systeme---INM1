@@ -13,13 +13,18 @@ object AveragerRouter {
 
     val serviceKey = ServiceKey[AveragerRouterProtocol]("averagerRouter")
 
+    val amountOfAveragerActors = 10
+
     def apply(): Behavior[AveragerRouterProtocol] = {
         Behaviors.setup[AveragerRouterProtocol] { context =>
             context.log.info("AveragerRouter - starting group")
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
 
             val group = Routers.group(AveragerActor.serviceKey)
-            val groupRouter = context.spawn(group.withConsistentHashingRouting(1, _.symbolIdentifier), "AveragerRouter")
+            val groupRouter = context.spawn(
+              group.withConsistentHashingRouting(amountOfAveragerActors, _.symbolIdentifier),
+              "AveragerRouter"
+            )
 
             // Subscription to db actor
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
@@ -54,8 +59,13 @@ object AveragerRouter {
 
         Behaviors.receiveMessagePartial { case ListingResponse(AveragerActor.serviceKey.Listing(listings)) =>
             context.log.info("got averager actors ref list")
-            handleAveragerActorsListForTermination(dbActorRef, listings, groupRouter)
 
+            context.log.info("Averager Actors listing size: {}", listings.size)
+            if (listings.size >= amountOfAveragerActors) {
+                handleAveragerActorsListForTermination(dbActorRef, listings, groupRouter)
+            } else {
+                Behaviors.same
+            }
         }
     }
 
