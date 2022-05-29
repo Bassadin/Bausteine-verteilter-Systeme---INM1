@@ -43,17 +43,11 @@ object DatabaseConnectorActor {
             dbClearStatement.executeUpdate("DELETE FROM TICKS")
 
             context.system.receptionist ! Receptionist.register(this.serviceKey, context.self)
-            val subscriptionAdapter = context.messageAdapter[Receptionist.Listing](ListingResponse.apply)
-            context.system.receptionist ! Receptionist.Subscribe(AveragerActor.serviceKey, subscriptionAdapter)
-
             Behaviors.receiveMessage {
                 // Store new averager Tick data in the DB
                 case HandleAveragedTickData(newTickToStore) =>
                     storeInDB(newTickToStore, context)
                     Behaviors.same;
-                case ListingResponse(AveragerActor.serviceKey.Listing(listings)) =>
-                    listings.foreach(averagerRef => averagerRef)
-                    Behaviors.same
                 case this.Terminate() =>
                     context.log.info("Terminating DB Actor")
                     context.system.receptionist ! Receptionist.Deregister(
