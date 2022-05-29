@@ -75,13 +75,10 @@ object AveragerRouter {
             case HandleTickData(newTick) =>
                 groupRouter ! AveragerActor.HandleNewTickData(newTick)
                 Behaviors.same
-
         }
     }
 
-    private def terminateAveragersWithBroadcast(
-        averagerListing: Set[ActorRef[AveragerActor.AveragerActorProtocol]]
-    ): Unit = {
+    private def terminateAveragersWithBroadcast(averagerListing: Set[ActorRef[AveragerActor.AveragerActorProtocol]]) = {
         for (eachAverager: ActorRef[AveragerActor.AveragerActorProtocol] <- averagerListing) {
             eachAverager ! AveragerActor.Terminate()
         }
