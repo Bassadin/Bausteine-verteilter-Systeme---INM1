@@ -27,7 +27,7 @@ object GRPC_Client extends App {
 
     logger.info("try to greet " + request.name + " synchronously...")
 
-    def logResponseCallback(response: Try[HelloReply]) {
+    def logResponseCallback(response: Try[HelloReply]): Unit = {
         response match {
             case Success(greeting)  => logger.info("Greeting: " + greeting.message)
             case Failure(exception) => exception.printStackTrace()

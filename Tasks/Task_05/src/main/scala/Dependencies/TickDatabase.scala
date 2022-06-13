@@ -18,15 +18,22 @@ object TickDatabase {
 
     def storeTickInDB(
         newTick: Tick
-    ): Unit = {
+    ): Boolean = {
         val sqlStatementToExecute = preparedTickInsertStatement
 
-        sqlStatementToExecute.setString(1, newTick.symbol)
-        sqlStatementToExecute.setString(2, newTick.timestamp.toString)
-        sqlStatementToExecute.setLong(3, newTick.price)
-        sqlStatementToExecute.executeUpdate()
+        try {
+            sqlStatementToExecute.setString(1, newTick.symbol)
+            sqlStatementToExecute.setString(2, newTick.timestampString)
+            sqlStatementToExecute.setLong(3, newTick.price)
+            sqlStatementToExecute.executeUpdate()
+        } catch {
+            case e: Exception =>
+                e.printStackTrace()
+                return false;
+        }
 
         print(s"Added Tick '$newTick' to DB successfully.")
+        return true;
     }
 
     def getTickFromDB(symbol: String): Tick = {
@@ -39,7 +46,7 @@ object TickDatabase {
 
         Tick(
           result.getString("SYMBOL"),
-          result.getTimestamp("TICKDATETIME").toLocalDateTime,
+          result.getTimestamp("TICKDATETIME").toString,
           result.getLong("PRICE")
         );
     }

@@ -1,16 +1,21 @@
 package BVS_gRPC
 
-import de.hfu.protos.hello._
+import Dependencies.{Tick, TickDatabase}
+import de.hfu.protos.aufgabe_05_grpc.{AddTickRequest, AddTickResponse, DbAccessorGrpc, GetTickRequest, GetTickResponse}
 import io.grpc.ServerBuilder
 
 import java.util.logging.Logger
 import scala.concurrent.{ExecutionContext, Future}
 
-class GreeterImpl extends GreeterGrpc.Greeter {
-    override def sayHello(request: HelloRequest): Future[HelloReply] = {
-        val result = "Hello " + request.name
-        val reply = HelloReply(result)
-        return Future.successful(reply)
+class DbAccessorServiceImplementation extends DbAccessorGrpc.DbAccessor {
+    override def addTick(request: AddTickRequest): Future[AddTickResponse] = {
+        val reply = TickDatabase.storeTickInDB(Tick(request.symbol, request.timestamp, request.price))
+        Future.successful(AddTickResponse(reply))
+    }
+
+    override def getTick(request: GetTickRequest): Future[GetTickResponse] = {
+        val reply = TickDatabase.getTickFromDB(request.symbol);
+        Future.successful(GetTickResponse(reply.symbol, reply.timestampString, reply.price))
     }
 }
 
@@ -20,8 +25,8 @@ object GRPC_Server extends App {
     val port = 50051
     val host = "localhost"
 
-    val service = GreeterGrpc.bindService(new GreeterImpl(), ExecutionContext.global)
-    val server = ServerBuilder.forPort(port).addService(service).asInstanceOf[ServerBuilder[_]].build().start()
+    val addTickService = DbAccessorGrpc.bindService(new DbAccessorServiceImplementation(), ExecutionContext.global)
+    val server = ServerBuilder.forPort(port).addService(addTickService).asInstanceOf[ServerBuilder[_]].build().start()
 
     logger.info("server started, listening on port " + port)
 

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package de.hfu.protos;
+
+service DbAccessor {
+  rpc AddTick (AddTickRequest) returns (AddTickResponse) {}
+  rpc GetTick (GetTickRequest) returns (GetTickResponse) {}
+}
+
+message AddTickRequest {
+  string symbol = 1;
+  string timestamp = 2;
+  int64 price = 3;
+}
+
+message AddTickResponse {
+  bool success = 1;
+}
+
+message GetTickRequest {
+  string symbol = 1;
+}
+
+message GetTickResponse {
+  string symbol = 1;
+  string timestamp = 2;
+  int64 price = 3;
+}
