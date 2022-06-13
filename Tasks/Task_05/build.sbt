@@ -1,18 +1,22 @@
-scalaVersion := "2.13.8"
+import sbt.Keys.libraryDependencies
 
-name := "Task_05"
+ThisBuild / version := "0.1.0-SNAPSHOT"
 
-// Want to use a published library in your project?
-// You can define other libraries as dependencies in your build like this:
+ThisBuild / scalaVersion := "2.13.8"
 
-// https://mvnrepository.com/artifact/com.h2database/h2
-libraryDependencies += "com.h2database" % "h2" % "1.4.200"
+lazy val root = (project in file("."))
+    .settings(
+      name := "grpc-hodappba"
+    )
 
 Compile / PB.targets := Seq(
   scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
 )
+
 libraryDependencies ++= Seq(
+  "com.h2database" % "h2" % "1.4.200",
   "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
   "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-    "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
+  "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion,
+  // https://mvnrepository.com/artifact/com.h2database/h2
 )
