@@ -1,9 +1,5 @@
 package Dependencies
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet, Statement}
 
 object TickDatabase {
