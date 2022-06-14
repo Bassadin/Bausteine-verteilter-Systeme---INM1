@@ -20,8 +20,7 @@ object GRPC_Client {
         val request = AddTickRequest(tick.symbol, tick.timestampString, tick.price)
         val response = DbAccessorGrpc.stub(channel).addTick(request)
 
-        // TODO: Das kann so nicht richtig sein
-        response.flatMap(response => Future { response.success })
+        response.map(response => response.success)
     }
 
     def getSync(symbol: String): Tick = {
@@ -34,8 +33,7 @@ object GRPC_Client {
         val request = GetTickRequest(symbol)
         val response = DbAccessorGrpc.stub(channel).getTick(request)
 
-        // TODO: Das kann so nicht richtig sein
-        response.flatMap(response => Future { Tick(response.symbol, response.timestamp, response.price) })
+        response.map(response => Tick(response.symbol, response.timestamp, response.price))
     }
 
     val logger: Logger = Logger.getLogger(GRPC_Client.getClass.getName)
