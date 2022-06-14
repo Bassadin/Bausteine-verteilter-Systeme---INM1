@@ -1,6 +1,6 @@
 package BVS_Akka_HTTP
 
-import Dependencies.{Tick, TickDatabase}
+import Dependencies.{Tick, TickDatabase, TickSprayJson}
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.javadsl.Behaviors
 import akka.http.scaladsl.Http
@@ -12,11 +12,7 @@ import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.io.StdIn
 
-trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-    implicit val tickFormat: RootJsonFormat[Tick] = jsonFormat3(Tick)
-}
-
-object HTTP_Server extends Directives with JsonSupport {
+object HTTP_Server extends Directives with TickSprayJson {
     def main(args: Array[String]) = {
         implicit val system = ActorSystem(Behaviors.empty, "http-server")
         implicit val executionContext = system.executionContext
