@@ -31,7 +31,7 @@ object HTTP_Server extends Directives with TickSprayJson {
 
         val bindingFuture = Http().newServerAt("localhost", 8080).bind(route)
 
-        println(s"Server now online. Pleas navigate to http://localhost:8080/hello\nPress RETURN to stop...")
+        println(s"Server now online.\nPress RETURN to stop...")
         StdIn.readLine()
         bindingFuture.flatMap(_.unbind()).onComplete(_ => system.terminate())
     }
